@@ -1,37 +1,32 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Container } from 'react-bootstrap';
 import FormularioLogin from '../components/login/FormularioLogin';
 import { supabase } from '../database/supabaseconfig';
 
 const Login = () => {
   const navigate = useNavigate();
 
-  // Paso 7: useEffect para validar si ya hay sesión activa
   useEffect(() => {
-    // Verificar si el usuario ya está autenticado
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/'); // Redirige al inicio si ya está logueado
+        navigate('/'); 
       }
     });
 
-    // Escuchar cambios de autenticación en tiempo real
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        navigate('/'); // Redirige cuando se loguea correctamente
+        navigate('/'); 
       }
     });
 
-    // Limpieza al desmontar el componente
-    return () => {
-      listener.subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   return (
-    <div className="login-container">
+    <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: 'calc(100vh - 76px)' }}>
       <FormularioLogin />
-    </div>
+    </Container>
   );
 };
 

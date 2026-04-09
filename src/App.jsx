@@ -18,12 +18,12 @@ function App() {
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/catalogo" element={<Catalogo />} />
 
         {/* Rutas protegidas */}
         <Route element={<RutaProtegida />}>
           <Route path="/productos" element={<Productos />} />
           <Route path="/categorias" element={<Categorias />} />
-          <Route path="/catalogo" element={<Catalogo />} />
         </Route>
 
         {/* Ruta 404 */}

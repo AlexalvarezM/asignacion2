@@ -1,80 +1,80 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Navbar, Nav, Container, Button, Dropdown } from 'react-bootstrap';
+import { supabase } from '../../database/supabaseconfig';
 import logo from '../../assets/logo.png';
 
 const Encabezado = () => {
   const navigate = useNavigate();
-  const [usuario, setUsuario] = useState(null);
+  const location = useLocation();
+  const [session, setSession] = useState(null);
 
-  // Paso 7: Manejo de sesión (versión recomendada sin warning)
   useEffect(() => {
-    const cargarUsuario = () => {
-      const sesion = localStorage.getItem('usuario');
-      if (sesion) {
-        try {
-          const usuarioParseado = JSON.parse(sesion);
-          setUsuario(usuarioParseado);
-        } catch (error) {
-          console.error("Error al parsear usuario:", error);
-          localStorage.removeItem('usuario');
-        }
-      }
-    };
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
 
-    cargarUsuario();
-  }, []);   // Dependencia vacía
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
-  const cerrarSesion = () => {
-    localStorage.removeItem('usuario');
-    setUsuario(null);
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const cerrarSesion = async () => {
+    await supabase.auth.signOut();
     navigate('/login');
   };
 
-  // Paso 8: Variable y condiciones para el menú
-  const esAdmin = usuario?.rol === 'admin';
+  const usuario = session?.user;
 
   return (
-    <header style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '15px 30px',
-      backgroundColor: '#f8f9fa',
-      borderBottom: '2px solid #ddd'
-    }}>
-      <img 
-        src={logo} 
-        alt="Logo" 
-        style={{ width: '70px', height: '70px', objectFit: 'contain' }} 
-      />
+    <Navbar expand="lg" className="profe-navbar sticky-top" collapseOnSelect>
+      <Container fluid className="px-4">
+        <Navbar.Brand as={Link} to="/" className="d-flex align-items-center profe-brand">
+          <img src={logo} alt="Discosa Logo" width="30" height="30" className="me-2" />
+          <span>Discosa</span>
+        </Navbar.Brand>
 
-      <nav style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <Link to="/">Inicio</Link>
-        <Link to="/catalogo">Catálogo</Link>
+        <Navbar.Toggle aria-controls="main-navbar" className="border-0 shadow-none">
+          <i className="bi bi-list text-white" style={{ fontSize: '1.5rem' }}></i>
+        </Navbar.Toggle>
 
-        {usuario ? (
-          <>
-            <Link to="/productos">Productos</Link>
-            {esAdmin && <Link to="/categorias">Categorías</Link>}
-            <button 
-              onClick={cerrarSesion}
-              style={{ 
-                padding: '10px 18px', 
-                backgroundColor: '#dc3545', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
+        <Navbar.Collapse id="main-navbar">
+          <Nav className="ms-auto align-items-center profe-links">
+            <Nav.Link as={Link} to="/" active={location.pathname === "/"} eventKey="1">Inicio</Nav.Link>
+            <Nav.Link as={Link} to="/categorias" active={location.pathname === "/categorias"} eventKey="2">Categorías</Nav.Link>
+            <Nav.Link 
+              className="text-white-50 disabled" 
+              style={{ cursor: 'default', pointerEvents: 'none' }}
             >
-              Cerrar Sesión
-            </button>
-          </>
-        ) : (
-          <Link to="/login">Iniciar Sesión</Link>
-        )}
-      </nav>
-    </header>
+              Productos
+            </Nav.Link>
+            <Nav.Link 
+              className="text-white-50 disabled" 
+              style={{ cursor: 'default', pointerEvents: 'none' }}
+            >
+              Catálogo
+            </Nav.Link>
+            {usuario && (
+              <Nav.Link 
+                onClick={cerrarSesion} 
+                className="ms-lg-3 d-flex align-items-center text-white opacity-75 hover-opacity-100"
+                style={{ cursor: 'pointer' }}
+                title="Cerrar Sesión"
+              >
+                <i className="bi bi-box-arrow-right" style={{ fontSize: '1.4rem' }}></i>
+              </Nav.Link>
+            )}
+            {!usuario && (
+              <Nav.Link as={Link} to="/login" className="ms-lg-3" eventKey="5">
+                <i className="bi bi-person-circle me-1"></i> Login
+              </Nav.Link>
+            )}
+          </Nav>
+        </Navbar.Collapse>
+      </Container>
+    </Navbar>
   );
 };
 

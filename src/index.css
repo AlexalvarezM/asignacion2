@@ -1,0 +1,140 @@
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --background: #f3f4f6;
+  --surface: #ffffff;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --navbar-bg: #1e3a8a;
+  --border: #d1d5db;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+.profe-navbar {
+  background-color: var(--navbar-bg) !important;
+  padding: 0.5rem 1rem;
+}
+
+.profe-brand span {
+  color: white !important;
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.profe-links .nav-link {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 0.9rem;
+  margin-left: 1rem;
+  transition: color 0.2s;
+}
+
+.profe-links .nav-link:hover, .profe-links .nav-link.active {
+  color: white !important;
+}
+
+.profe-page {
+  background-color: transparent;
+}
+
+.profe-page-title {
+  color: #374151;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.profe-add-btn {
+  background-color: #1e3a8a !important;
+  border: none !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 500 !important;
+  border-radius: 4px !important;
+  transition: background-color 0.2s;
+}
+
+.profe-add-btn:hover {
+  background-color: #1d4ed8 !important;
+}
+
+.profe-separator {
+  border-top: 1px solid #9ca3af;
+  margin: 1rem 0;
+}
+
+.modal-content {
+  border-radius: 8px !important;
+  border: none !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.modal-header {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.modal-title {
+  color: #111827 !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+}
+
+.modal-body label {
+  color: #374151 !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.25rem;
+}
+
+.form-control {
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  padding: 0.5rem 0.75rem !important;
+  background-color: white !important;
+  color: #1f2937 !important;
+}
+
+.form-control:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+  outline: none;
+}
+
+.modal-footer {
+  border-top: none !important;
+  padding-top: 0 !important;
+}
+
+.btn-secondary {
+  background-color: #6b7280 !important;
+  border: none !important;
+}
+
+.btn-primary {
+  background-color: #3b82f6 !important;
+  border: none !important;
+}
+
+/* Utilities for Toast/NotificacionOperacion */
+.bg-primary { background-color: var(--primary) !important; }
+.bg-warning { background-color: var(--warning) !important; }
+.bg-accent { background-color: var(--danger) !important; }
+.bg-primary-light { background-color: rgba(37, 99, 235, 0.1) !important; }
+.bg-warning-light { background-color: rgba(245, 158, 11, 0.1) !important; }
+.bg-accent-light { background-color: rgba(239, 68, 68, 0.1) !important; }
+.text-primary { color: var(--primary) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-accent { color: var(--danger) !important; }
+.text-main { color: var(--text-main) !important; }
+
+.glass {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px);
+}
