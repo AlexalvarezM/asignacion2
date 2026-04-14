@@ -1,80 +1,70 @@
-import React, { useState } from "react";
-import { Table, Button } from "react-bootstrap";
-import ModalEdicionCategoria from "./ModalEdicionCategoria";
-import ModalEliminacionCategoria from "./ModalEliminacionCategoria";
+import React, { useState, useEffect } from "react";
+import { Table, Spinner, Button } from "react-bootstrap";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
-const TablaCategorias = ({ categorias, onUpdate, setToast }) => {
-  const [mostrarModalEdicion, setMostrarModalEdicion] = useState(false);
-  const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
+const TablaCategorias = ({
+  categorias,
+  abrirModalEdicion,
+  abrirModalEliminacion
+}) => {
+  const [loading, setLoading] = useState(true);
 
-  const handleEditar = (categoria) => {
-    setCategoriaSeleccionada(categoria);
-    setMostrarModalEdicion(true);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (categorias && categorias.length > 0) {
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }, 0);
 
-  const handleEliminar = (categoria) => {
-    setCategoriaSeleccionada(categoria);
-    setMostrarModalEliminacion(true);
-  };
+    return () => clearTimeout(timer);
+  }, [categorias]);
 
   return (
     <>
-      <Table responsive className="align-middle profe-table">
-        <thead>
-          <tr>
-            <th className="px-4">Nombre</th>
-            <th>Descripción</th>
-            <th className="text-center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {categorias.length > 0 ? (
-            categorias.map((categoria) => (
+      {loading ? (
+        <div className="text-center">
+          <h4>Cargando categorías...</h4>
+          <Spinner animation="border" variant="success" role="status" />
+        </div>
+      ) : (
+        <Table striped borderless hover responsive size="sm">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th className="d-none d-md-table-cell">Descripción</th>
+              <th className="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categorias.map((categoria) => (
               <tr key={categoria.id_categoria}>
-                <td className="px-4 fw-bold">{categoria.nombre}</td>
-                <td className="text-muted small">
-                  {categoria.descripcion || "Sin descripción"}
-                </td>
+                <td>{categoria.id_categoria}</td>
+                <td>{categoria.nombre_categoria}</td>
+                <td className="d-none d-md-table-cell">{categoria.descripcion_categoria}</td>
                 <td className="text-center">
-                  <div className="d-flex justify-content-center gap-2">
-                    <Button variant="outline-primary" size="sm" onClick={() => handleEditar(categoria)}>
-                      <i className="bi bi-pencil-fill"></i>
-                    </Button>
-                    <Button variant="outline-danger" size="sm" onClick={() => handleEliminar(categoria)}>
-                      <i className="bi bi-trash3-fill"></i>
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline-warning"
+                    size="sm"
+                    className="m-1"
+                    onClick={() => abrirModalEdicion(categoria)}
+                  >
+                    <i className="bi bi-pencil"></i>
+                  </Button>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={() => abrirModalEliminacion(categoria)}
+                  >
+                    <i className="bi bi-trash"></i>
+                  </Button>
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="3" className="text-center py-5 text-muted">
-                No hay categorías registradas en el reino.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
-
-      {categoriaSeleccionada && (
-        <>
-          <ModalEdicionCategoria
-            show={mostrarModalEdicion}
-            onHide={() => setMostrarModalEdicion(false)}
-            categoria={categoriaSeleccionada}
-            onUpdate={onUpdate}
-            setToast={setToast}
-          />
-          <ModalEliminacionCategoria
-            show={mostrarModalEliminacion}
-            onHide={() => setMostrarModalEliminacion(false)}
-            categoria={categoriaSeleccionada}
-            onUpdate={onUpdate}
-            setToast={setToast}
-          />
-        </>
+            ))}
+          </tbody>
+        </Table>
       )}
     </>
   );

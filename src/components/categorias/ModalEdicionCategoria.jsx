@@ -12,7 +12,7 @@ const ModalEdicionCategoria = ({ show, onHide, categoria, onUpdate, setToast }) 
   useEffect(() => {
     if (categoria) {
       setDatos({
-        nombre: categoria.nombre,
+        nombre: categoria.nombre || "",
         descripcion: categoria.descripcion || "",
       });
     }
@@ -25,7 +25,7 @@ const ModalEdicionCategoria = ({ show, onHide, categoria, onUpdate, setToast }) 
 
   const handleGuardar = async () => {
     try {
-      if (!datos.nombre.trim()) {
+      if (!datos.nombre || !datos.nombre.trim()) {
         setToast({
           mostrar: true,
           mensaje: "El nombre es obligatorio.",
@@ -102,7 +102,7 @@ const ModalEdicionCategoria = ({ show, onHide, categoria, onUpdate, setToast }) 
         <Button
           variant="primary"
           onClick={handleGuardar}
-          disabled={loading || !datos.nombre.trim()}
+          disabled={loading || !datos.nombre || !datos.nombre.trim()}
           className="px-4"
         >
           {loading ? "Sincronizando..." : "Guardar Cambios"}
