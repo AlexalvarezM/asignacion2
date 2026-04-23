@@ -5,7 +5,9 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 const TablaCategorias = ({
   categorias,
   abrirModalEdicion,
-  abrirModalEliminacion
+  abrirModalEliminacion,
+  paginaActual,
+  registrosPorPagina
 }) => {
   const [loading, setLoading] = useState(true);
 
@@ -39,9 +41,9 @@ const TablaCategorias = ({
             </tr>
           </thead>
           <tbody>
-            {categorias.map((categoria) => (
+            {categorias.map((categoria, index) => (
               <tr key={categoria.id_categoria}>
-                <td>{categoria.id_categoria}</td>
+                <td>{index + 1 + (paginaActual - 1) * registrosPorPagina}</td>
                 <td>{categoria.nombre_categoria}</td>
                 <td className="d-none d-md-table-cell">{categoria.descripcion_categoria}</td>
                 <td className="text-center">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
 import { supabase } from "../database/supabaseconfig";
 
 import ModalRegistroCategoria from "../components/categorias/ModalRegistroCategoria";
@@ -8,6 +8,8 @@ import TarjetaCategoria from "../components/categorias/TarjetaCategoria";
 import NotificacionOperacion from "../components/NotificacionOperacion";
 import ModalEdicionCategoria from "../components/categorias/ModalEdicionCategoria";
 import ModalEliminacionCategoria from "../components/categorias/ModalEliminacionCategoria";
+import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
+import Paginacion from "../components/ordenamiento/Paginacion";
 
 const Categorias = () => {
   const [toast, setToast] = useState({ mostrar: false, mensaje: "", tipo: "" });
@@ -23,6 +25,36 @@ const Categorias = () => {
     nombre: "",
     descripcion: "",
   });
+
+  const [textoBusqueda, setTextoBusqueda] = useState("");
+  const [categoriasFiltradas, setCategoriasFiltradas] = useState([]);
+
+  const [registrosPorPagina, establecerRegistrosPorPagina] = useState(5);
+  const [paginaActual, establecerPaginaActual] = useState(1);
+
+  const manejarCambioBusqueda = (e) => {
+    setTextoBusqueda(e.target.value);
+    establecerPaginaActual(1); // Reset to page 1 on search
+  };
+
+  useEffect(() => {
+    if (!textoBusqueda.trim()) {
+      setCategoriasFiltradas(categorias);
+    } else {
+      const textoLower = textoBusqueda.toLowerCase().trim();
+      const filtradas = categorias.filter(
+        (cat) =>
+          cat.nombre_categoria.toLowerCase().includes(textoLower) ||
+          (cat.descripcion_categoria && cat.descripcion_categoria.toLowerCase().includes(textoLower))
+      );
+      setCategoriasFiltradas(filtradas);
+    }
+  }, [textoBusqueda, categorias]);
+
+  const categoriasPaginadas = categoriasFiltradas.slice(
+    (paginaActual - 1) * registrosPorPagina,
+    paginaActual * registrosPorPagina
+  );
 
   const [nuevaCategoria, setNuevaCategoria] = useState({
     nombre: "",
@@ -152,6 +184,29 @@ const Categorias = () => {
         </Row>
         <hr className="profe-separator" />
 
+        {/* Cuadro de búsqueda debajo de la línea divisoria */}
+        <Row className="mb-4">
+          <Col md={6} lg={5}>
+            <CuadroBusquedas
+              textoBusqueda={textoBusqueda}
+              manejarCambioBusqueda={manejarCambioBusqueda}
+              placeholder="Buscar por nombre o descripción..."
+            />
+          </Col>
+        </Row>
+
+        {/* Mensaje de no coincidencias solo cuando hay búsqueda y no hay resultados */}
+        {!cargando && textoBusqueda.trim() && categoriasFiltradas.length === 0 && (
+          <Row className="mb-4">
+            <Col>
+              <Alert variant="info" className="text-center">
+                <i className="bi bi-info-circle me-2"></i>
+                No se encontraron categorías que coincidan con "{textoBusqueda}".
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
         {/* Spinner mientras se cargan las categorías */}
         {cargando && (
           <Row className="text-center my-5">
@@ -162,27 +217,42 @@ const Categorias = () => {
           </Row>
         )}
 
-        {/* Lista de categorías cargadas */}
-        {!cargando && categorias.length > 0 && (
+        {/* Lista de categorías filtradas */}
+        {!cargando && categoriasFiltradas.length > 0 && (
           <Row>
             {/* Implementación de las tarjetas para móviles */}
             <Col xs={12} sm={12} md={12} className="d-lg-none">
               <TarjetaCategoria
-                categorias={categorias}
+                categorias={categoriasPaginadas}
                 abrirModalEdicion={abrirModalEdicion}
                 abrirModalEliminacion={abrirModalEliminacion}
+                paginaActual={paginaActual}
+                registrosPorPagina={registrosPorPagina}
               />
             </Col>
 
             {/* Implementación de la tabla para pantallas grandes */}
             <Col lg={12} className="d-none d-lg-block">
               <TablaCategorias
-                categorias={categorias}
+                categorias={categoriasPaginadas}
                 abrirModalEdicion={abrirModalEdicion}
                 abrirModalEliminacion={abrirModalEliminacion}
+                paginaActual={paginaActual}
+                registrosPorPagina={registrosPorPagina}
               />
             </Col>
           </Row>
+        )}
+
+        {/* Paginación */}
+        {categoriasFiltradas.length > 0 && (
+          <Paginacion
+            registrosPorPagina={registrosPorPagina}
+            totalRegistros={categoriasFiltradas.length}
+            paginaActual={paginaActual}
+            establecerPaginaActual={establecerPaginaActual}
+            establecerRegistrosPorPagina={establecerRegistrosPorPagina}
+          />
         )}
 
         <ModalRegistroCategoria
