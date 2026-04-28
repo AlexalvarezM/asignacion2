@@ -24,48 +24,72 @@ const TarjetasProductos = ({ productos, categorias, onUpdate, setToast }) => {
         {productos.length > 0 ? (
           productos.map((producto) => (
             <Col key={producto.id_producto}>
-              <Card className="h-100 shadow-lg border-0 overflow-hidden">
-                <div className="position-relative overflow-hidden" style={{ height: "200px" }}>
-                  <div className="bg-primary-light d-flex align-items-center justify-content-center h-100">
-                    <i className="bi bi-box-seam text-primary opacity-25 display-1"></i>
-                  </div>
+              <Card className="h-100 product-card shadow-sm border-0 overflow-hidden">
+                <div className="position-relative" style={{ height: "220px" }}>
+                  {producto.imagen_url ? (
+                    <Card.Img
+                      variant="top"
+                      src={producto.imagen_url}
+                      className="h-100 w-100 object-fit-cover transition-zoom"
+                      alt={producto.nombre_producto}
+                    />
+                  ) : (
+                    <div className="bg-light d-flex align-items-center justify-content-center h-100">
+                      <i className="bi bi-image text-muted display-4"></i>
+                    </div>
+                  )}
                   <div className="position-absolute bottom-0 start-0 m-3">
                     <Badge bg="primary" className="px-3 py-2 rounded-pill shadow text-dark fw-bold">
-                      ${producto.precio?.toLocaleString()}
+                      ${parseFloat(producto.precio_producto || 0).toLocaleString()}
                     </Badge>
                   </div>
-                  <div className="position-absolute top-0 end-0 m-3">
-                    <Badge bg={producto.stock > 0 ? "accent-light" : "secondary"} text={producto.stock > 0 ? "accent" : "white"} className="px-3 py-2 rounded-pill shadow border border-accent fw-bold">
-                      Stock: {producto.stock}
-                    </Badge>
-                  </div>
+                  {producto.stock <= 5 && (
+                    <div className="position-absolute top-0 end-0 m-3">
+                      <Badge bg="danger" className="px-2 py-1 shadow">
+                        ¡Stock Bajo: {producto.stock}!
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 <Card.Body className="p-4 d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-start mb-2">
-                    <Card.Title className="fw-extrabold mb-0 text-primary fs-4">{producto.nombre}</Card.Title>
-                    <Badge bg="primary-light" text="primary" className="text-uppercase px-2 py-1" style={{ fontSize: '0.65rem' }}>
+                    <Card.Title className="fw-extrabold mb-0 text-primary fs-4">
+                      {producto.nombre_producto}
+                    </Card.Title>
+                    <Badge
+                      bg="primary-light"
+                      text="primary"
+                      className="text-uppercase px-2 py-1"
+                      style={{ fontSize: "0.65rem" }}
+                    >
                       {producto.categorias?.nombre || "Sin Categoría"}
                     </Badge>
                   </div>
-                  <Card.Text className="text-muted small mb-4 flex-grow-1">
-                    Este producto es parte esencial de nuestro inventario rústico de alta calidad.
+                  <Card.Text className="text-muted small mb-2 flex-grow-1">
+                    {producto.descripcion_producto ||
+                      "Este producto es parte esencial de nuestro inventario de alta calidad."}
                   </Card.Text>
-                  <div className="d-flex gap-2">
-                    <Button 
-                      variant="outline-primary" 
-                      className="flex-grow-1 py-2 fw-bold"
-                      onClick={() => handleEditar(producto)}
-                    >
-                      <i className="bi bi-pencil-square me-2"></i> Editar
-                    </Button>
-                    <Button 
-                      variant="outline-accent" 
-                      className="flex-grow-1 py-2 fw-bold"
-                      style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }}
-                      onClick={() => handleEliminar(producto)}
-                    >
-                      <i className="bi bi-trash3-fill"></i>
-                    </Button>
+                  <div className="mt-auto pt-3 d-flex justify-content-between align-items-center border-top">
+                    <span className="text-muted small">
+                      <i className="bi bi-box me-1"></i> Stock: {producto.stock}
+                    </span>
+                    <div className="d-flex gap-2">
+                      <Button 
+                        variant="outline-primary" 
+                        className="flex-grow-1 py-2 fw-bold"
+                        onClick={() => handleEditar(producto)}
+                      >
+                        <i className="bi bi-pencil-square me-2"></i> Editar
+                      </Button>
+                      <Button 
+                        variant="outline-accent" 
+                        className="flex-grow-1 py-2 fw-bold"
+                        style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }}
+                        onClick={() => handleEliminar(producto)}
+                      >
+                        <i className="bi bi-trash3-fill"></i>
+                      </Button>
+                    </div>
                   </div>
                 </Card.Body>
               </Card>

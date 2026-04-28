@@ -12,8 +12,8 @@ const ModalEdicionCategoria = ({ show, onHide, categoria, onUpdate, setToast }) 
   useEffect(() => {
     if (categoria) {
       setDatos({
-        nombre: categoria.nombre || "",
-        descripcion: categoria.descripcion || "",
+        nombre: categoria.nombre_categoria || "",
+        descripcion: categoria.descripcion_categoria || "",
       });
     }
   }, [categoria]);

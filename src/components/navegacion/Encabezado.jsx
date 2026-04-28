@@ -44,15 +44,11 @@ const Encabezado = () => {
           <Nav className="ms-auto align-items-center profe-links">
             <Nav.Link as={Link} to="/" active={location.pathname === "/"} eventKey="1">Inicio</Nav.Link>
             <Nav.Link as={Link} to="/categorias" active={location.pathname === "/categorias"} eventKey="2">Categorías</Nav.Link>
+            <Nav.Link as={Link} to="/productos" active={location.pathname === "/productos"} eventKey="3">Productos</Nav.Link>
             <Nav.Link 
-              className="text-white-50 disabled" 
-              style={{ cursor: 'default', pointerEvents: 'none' }}
-            >
-              Productos
-            </Nav.Link>
-            <Nav.Link 
-              className="text-white-50 disabled" 
-              style={{ cursor: 'default', pointerEvents: 'none' }}
+              as="span" 
+              className="text-white opacity-50" 
+              style={{ cursor: 'default' }}
             >
               Catálogo
             </Nav.Link>

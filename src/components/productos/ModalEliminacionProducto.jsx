@@ -41,9 +41,9 @@ const ModalEliminacionProducto = ({ show, onHide, producto, onUpdate, setToast }
       </Modal.Header>
       <Modal.Body className="px-4 pb-4">
         <p className="fs-5 fw-medium text-main">
-          ¿Estás seguro de que deseas eliminar <strong>{producto?.nombre}</strong> del inventario?
+          ¿Estás seguro de que deseas eliminar <strong>{producto?.nombre_producto}</strong> del inventario?
         </p>
-        <p className="text-accent small fw-bold">
+        <p className="text-danger small fw-bold">
           <i className="bi bi-exclamation-triangle-fill me-2"></i>
           Esta acción no se puede deshacer.
         </p>
