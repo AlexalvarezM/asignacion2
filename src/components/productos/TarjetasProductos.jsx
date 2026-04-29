@@ -1,17 +1,10 @@
 import React, { useState } from "react";
 import { Row, Col, Card, Button, Badge } from "react-bootstrap";
-import ModalEdicionProducto from "./ModalEdicionProducto";
 import ModalEliminacionProducto from "./ModalEliminacionProducto";
 
-const TarjetasProductos = ({ productos, categorias, onUpdate, setToast }) => {
-  const [mostrarModalEdicion, setMostrarModalEdicion] = useState(false);
+const TarjetasProductos = ({ productos, onUpdate, setToast, abrirModalEdicion }) => {
   const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-
-  const handleEditar = (producto) => {
-    setProductoSeleccionado(producto);
-    setMostrarModalEdicion(true);
-  };
 
   const handleEliminar = (producto) => {
     setProductoSeleccionado(producto);
@@ -56,14 +49,13 @@ const TarjetasProductos = ({ productos, categorias, onUpdate, setToast }) => {
                     <Card.Title className="fw-extrabold mb-0 text-primary fs-4">
                       {producto.nombre_producto}
                     </Card.Title>
-                    <Badge
-                      bg="primary-light"
-                      text="primary"
-                      className="text-uppercase px-2 py-1"
-                      style={{ fontSize: "0.65rem" }}
-                    >
-                      {producto.categorias?.nombre || "Sin Categoría"}
-                    </Badge>
+                      <Badge
+                        bg="primary"
+                        className="text-uppercase px-3 py-2 fw-bold"
+                        style={{ fontSize: "0.75rem", borderRadius: "10px" }}
+                      >
+                        {producto.categorias?.nombre || "Sin Categoría"}
+                      </Badge>
                   </div>
                   <Card.Text className="text-muted small mb-2 flex-grow-1">
                     {producto.descripcion_producto ||
@@ -77,7 +69,7 @@ const TarjetasProductos = ({ productos, categorias, onUpdate, setToast }) => {
                       <Button 
                         variant="outline-primary" 
                         className="flex-grow-1 py-2 fw-bold"
-                        onClick={() => handleEditar(producto)}
+                        onClick={() => abrirModalEdicion(producto)}
                       >
                         <i className="bi bi-pencil-square me-2"></i> Editar
                       </Button>
@@ -110,23 +102,13 @@ const TarjetasProductos = ({ productos, categorias, onUpdate, setToast }) => {
       </Row>
 
       {productoSeleccionado && (
-        <>
-          <ModalEdicionProducto
-            show={mostrarModalEdicion}
-            onHide={() => setMostrarModalEdicion(false)}
-            producto={productoSeleccionado}
-            categorias={categorias}
-            onUpdate={onUpdate}
-            setToast={setToast}
-          />
-          <ModalEliminacionProducto
-            show={mostrarModalEliminacion}
-            onHide={() => setMostrarModalEliminacion(false)}
-            producto={productoSeleccionado}
-            onUpdate={onUpdate}
-            setToast={setToast}
-          />
-        </>
+        <ModalEliminacionProducto
+          show={mostrarModalEliminacion}
+          onHide={() => setMostrarModalEliminacion(false)}
+          producto={productoSeleccionado}
+          onUpdate={onUpdate}
+          setToast={setToast}
+        />
       )}
     </>
   );
