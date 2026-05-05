@@ -96,8 +96,8 @@ const Categorias = () => {
       // Mapear los datos de la BD a los nombres de campo solicitados por el profesor
       const datosMapeados = (data || []).map(cat => ({
         id_categoria: cat.id_categoria,
-        nombre_categoria: cat.nombre,
-        descripcion_categoria: cat.descripcion
+        nombre_categoria: cat.nombre || "",
+        descripcion_categoria: cat.descripcion || ""
       }));
       
       setCategorias(datosMapeados);
