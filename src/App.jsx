@@ -7,6 +7,8 @@ import Inicio from './views/Inicio';
 import Login from './views/Login';
 import Productos from './views/Productos';
 import Categorias from './views/Categorias';
+import Empleados from './views/Empleados';
+import Clientes from './views/Clientes';
 import Catalogo from './views/Catalogo';
 import Pagina404 from './views/Pagina404';
 
@@ -24,6 +26,8 @@ function App() {
         <Route element={<RutaProtegida />}>
           <Route path="/productos" element={<Productos />} />
           <Route path="/categorias" element={<Categorias />} />
+          <Route path="/empleados" element={<Empleados />} />
+          <Route path="/clientes" element={<Clientes />} />
         </Route>
 
         {/* Ruta 404 */}

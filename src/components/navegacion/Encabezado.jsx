@@ -45,6 +45,8 @@ const Encabezado = () => {
             <Nav.Link as={Link} to="/" active={location.pathname === "/"} eventKey="1">Inicio</Nav.Link>
             <Nav.Link as={Link} to="/categorias" active={location.pathname === "/categorias"} eventKey="2">Categorías</Nav.Link>
             <Nav.Link as={Link} to="/productos" active={location.pathname === "/productos"} eventKey="3">Productos</Nav.Link>
+            <Nav.Link as={Link} to="/empleados" active={location.pathname === "/empleados"} eventKey="6">Empleados</Nav.Link>
+            <Nav.Link as={Link} to="/clientes" active={location.pathname === "/clientes"} eventKey="7">Clientes</Nav.Link>
             <Nav.Link as={Link} to="/catalogo" active={location.pathname === "/catalogo"} eventKey="4">Catálogo</Nav.Link>
             {usuario && (
               <Nav.Link 
