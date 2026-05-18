@@ -1,174 +1,354 @@
-import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
+import React, { useCallback, useEffect, useState } from "react";
+import { Container, Row, Col, Button, Alert, Spinner } from "react-bootstrap";
 import { supabase } from "../database/supabaseconfig";
-import TablaEmpleados from "../components/empleados/TablaEmpleados";
+
 import ModalRegistroEmpleado from "../components/empleados/ModalRegistroEmpleado";
 import ModalEdicionEmpleado from "../components/empleados/ModalEdicionEmpleado";
-import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
-import Paginacion from "../components/ordenamiento/Paginacion";
+import ModalEliminacionEmpleado from "../components/empleados/ModalEliminacionEmpleado";
+import TablaEmpleados from "../components/empleados/TablaEmpleados";
+import TarjetaEmpleado from "../components/empleados/TarjetaEmpleado";
 import NotificacionOperacion from "../components/NotificacionOperacion";
+import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
+
+const limpiarTexto = (valor) => valor?.trim() || "";
+
+const normalizarOpcional = (valor) => {
+  const texto = limpiarTexto(valor);
+  return texto || null;
+};
+
+const normalizarEmpleado = (empleado) => ({
+  id_empleado: empleado.id_empleado,
+  nombre_empleado: empleado.nombre_empleado || empleado.nombre || "",
+  apellido_empleado: empleado.apellido_empleado || empleado.apellido || "",
+  email: empleado.email || "",
+  celular: empleado.celular || "",
+  pin: empleado.pin || empleado.pin_acceso || "",
+  tipo_empleado: empleado.tipo_empleado || "mesero",
+});
+
+const esErrorDeEsquema = (error) => {
+  const mensaje = error?.message?.toLowerCase() || "";
+  return mensaje.includes("column") || mensaje.includes("schema cache") || mensaje.includes("does not exist");
+};
+
+const construirPayloadEmpleado = (empleado, esquema = "nuevo") => {
+  if (esquema === "legacy") {
+    return {
+      nombre: limpiarTexto(empleado.nombre_empleado),
+      apellido: normalizarOpcional(empleado.apellido_empleado),
+      pin_acceso: normalizarOpcional(empleado.pin),
+      tipo_empleado: limpiarTexto(empleado.tipo_empleado) || "mesero",
+    };
+  }
+
+  return {
+    nombre_empleado: limpiarTexto(empleado.nombre_empleado),
+    apellido_empleado: normalizarOpcional(empleado.apellido_empleado),
+    celular: normalizarOpcional(empleado.celular),
+    pin: normalizarOpcional(empleado.pin),
+    email: limpiarTexto(empleado.email),
+    tipo_empleado: limpiarTexto(empleado.tipo_empleado) || "mesero",
+  };
+};
 
 const Empleados = () => {
+
   const [empleados, setEmpleados] = useState([]);
-  const [filtrados, setFiltrados] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [busqueda, setBusqueda] = useState("");
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [registrosPorPagina, setRegistrosPorPagina] = useState(5);
-
-  const [mostrarRegistro, setMostrarRegistro] = useState(false);
-  const [mostrarEdicion, setMostrarEdicion] = useState(false);
-  const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState(null);
-
-  const [nuevoEmpleado, setNuevoEmpleado] = useState({
-    nombre: "",
-    apellido: "",
-    pin_acceso: "",
-    tipo_empleado: ""
-  });
+  const [empleadosFiltrados, setEmpleadosFiltrados] = useState([]);
+  const [textoBusqueda, setTextoBusqueda] = useState("");
+  const [cargando, setCargando] = useState(true);   // ← Estado de carga inicial
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarModalEdicion, setMostrarModalEdicion] = useState(false);
+  const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
 
   const [toast, setToast] = useState({ mostrar: false, mensaje: "", tipo: "" });
 
-  useEffect(() => {
-    cargarEmpleados();
-  }, []);
+  const [nuevoEmpleado, setNuevoEmpleado] = useState({
+    nombre_empleado: "",
+    apellido_empleado: "",
+    celular: "",
+    pin: "",
+    email: "",
+    password: "",
+    tipo_empleado: "mesero",
+  });
 
-  useEffect(() => {
-    const res = empleados.filter(emp => 
-      emp.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      emp.apellido.toLowerCase().includes(busqueda.toLowerCase())
-    );
-    setFiltrados(res);
-    setPaginaActual(1);
-  }, [busqueda, empleados]);
+  const [empleadoEditar, setEmpleadoEditar] = useState({
+    id_empleado: "",
+    nombre_empleado: "",
+    apellido_empleado: "",
+    celular: "",
+    pin: "",
+    email: "",
+    tipo_empleado: "",
+  });
 
-  const cargarEmpleados = async () => {
+  const [empleadoEliminar, setEmpleadoEliminar] = useState(null);
+
+  const cargarEmpleados = useCallback(async () => {
     try {
-      setLoading(true);
+      setCargando(true);
       const { data, error } = await supabase
         .from("empleados")
         .select("*")
         .order("id_empleado", { ascending: true });
-      if (error) throw error;
-      setEmpleados(data || []);
-    } catch (err) {
-      console.error(err);
+
+      if (error) {
+        setToast({ mostrar: true, mensaje: "Error al cargar empleados", tipo: "error" });
+        return;
+      }
+      const empleadosNormalizados = (data || []).map(normalizarEmpleado);
+      setEmpleados(empleadosNormalizados);
+      setEmpleadosFiltrados(empleadosNormalizados);
+    } catch (error) {
+      console.error("Error al cargar empleados:", error);
+      setToast({ mostrar: true, mensaje: "Error inesperado al cargar empleados", tipo: "error" });
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
-  };
+  }, []);
+
+  const insertarEmpleado = useCallback(async (empleado) => {
+    try {
+      const payloadNuevo = construirPayloadEmpleado(empleado, "nuevo");
+      const { error: errorNuevo } = await supabase.from("empleados").insert([payloadNuevo]);
+
+      if (!errorNuevo) return;
+      if (!esErrorDeEsquema(errorNuevo)) throw errorNuevo;
+
+      const payloadLegacy = construirPayloadEmpleado(empleado, "legacy");
+      await supabase.from("empleados").insert([payloadLegacy]);
+    } catch (error) {
+      console.error("Error al insertar empleado:", error);
+      throw error;
+    }
+  }, []);
+
+  const actualizarRegistroEmpleado = useCallback(async (empleado) => {
+    try {
+      const payloadNuevo = construirPayloadEmpleado(empleado, "nuevo");
+      const { error: errorNuevo } = await supabase
+        .from("empleados")
+        .update(payloadNuevo)
+        .eq("id_empleado", empleado.id_empleado);
+
+      if (!errorNuevo) return;
+      if (!esErrorDeEsquema(errorNuevo)) throw errorNuevo;
+
+      const payloadLegacy = construirPayloadEmpleado(empleado, "legacy");
+      await supabase
+        .from("empleados")
+        .update(payloadLegacy)
+        .eq("id_empleado", empleado.id_empleado);
+    } catch (error) {
+      console.error("Error al actualizar empleado:", error);
+      throw error;
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarEmpleados();
+  }, [cargarEmpleados]);
+
+  // Filtrado
+  useEffect(() => {
+    if (!textoBusqueda.trim()) {
+      setEmpleadosFiltrados(empleados);
+    } else {
+      const texto = textoBusqueda.toLowerCase().trim();
+      const filtrados = empleados.filter(emp =>
+        `${emp.nombre_empleado} ${emp.apellido_empleado} ${emp.email || ""} ${emp.tipo_empleado || ""}`
+          .toLowerCase().includes(texto)
+      );
+      setEmpleadosFiltrados(filtrados);
+    }
+  }, [textoBusqueda, empleados]);
 
   const agregarEmpleado = async () => {
+    if (
+      !limpiarTexto(nuevoEmpleado.nombre_empleado) ||
+      !limpiarTexto(nuevoEmpleado.email) ||
+      !limpiarTexto(nuevoEmpleado.password)
+    ) {
+      setToast({ mostrar: true, mensaje: "Los campos Nombre, Email y Contraseña son obligatorios", tipo: "advertencia" });
+      return;
+    }
+
     try {
-      const { error } = await supabase.from("empleados").insert([nuevoEmpleado]);
-      if (error) throw error;
-      setToast({ mostrar: true, mensaje: "Empleado registrado con éxito", tipo: "exito" });
-      setMostrarRegistro(false);
-      setNuevoEmpleado({ nombre: "", apellido: "", pin_acceso: "", tipo_empleado: "" });
-      cargarEmpleados();
+      setMostrarModal(false);
+
+      const { error: authError } = await supabase.auth.signUp({
+        email: limpiarTexto(nuevoEmpleado.email),
+        password: nuevoEmpleado.password,
+        options: {
+          data: {
+            nombre: limpiarTexto(nuevoEmpleado.nombre_empleado),
+            apellido: normalizarOpcional(nuevoEmpleado.apellido_empleado),
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      await insertarEmpleado(nuevoEmpleado);
+
+      await cargarEmpleados();
+      setNuevoEmpleado({
+        nombre_empleado: "",
+        apellido_empleado: "",
+        celular: "",
+        pin: "",
+        email: "",
+        password: "",
+        tipo_empleado: "mesero",
+      });
+
+      setToast({
+        mostrar: true,
+        mensaje: `Empleado ${nuevoEmpleado.nombre_empleado} registrado correctamente`,
+        tipo: "exito"
+      });
     } catch (err) {
       console.error(err);
-      setToast({ mostrar: true, mensaje: "Error al registrar empleado", tipo: "error" });
+      setToast({ mostrar: true, mensaje: err.message || "Error al registrar empleado", tipo: "error" });
     }
   };
 
-  const actualizarEmpleado = async (datos) => {
+  const actualizarEmpleado = async () => {
+    if (!limpiarTexto(empleadoEditar.nombre_empleado)) {
+      setToast({ mostrar: true, mensaje: "El nombre del empleado es obligatorio", tipo: "advertencia" });
+      return;
+    }
+
     try {
-      const { error } = await supabase
-        .from("empleados")
-        .update(datos)
-        .eq("id_empleado", empleadoSeleccionado.id_empleado);
-      if (error) throw error;
-      setToast({ mostrar: true, mensaje: "Empleado actualizado con éxito", tipo: "exito" });
-      setMostrarEdicion(false);
-      cargarEmpleados();
-    } catch (err) {
-      console.error(err);
-      setToast({ mostrar: true, mensaje: "Error al actualizar empleado", tipo: "error" });
+      setMostrarModalEdicion(false);
+      await actualizarRegistroEmpleado(empleadoEditar);
+
+      await cargarEmpleados();
+      setToast({
+        mostrar: true,
+        mensaje: `Empleado ${empleadoEditar.nombre_empleado} actualizado`,
+        tipo: "exito"
+      });
+    } catch (error) {
+      console.error("Error al actualizar empleado:", error);
+      setToast({ mostrar: true, mensaje: error.message || "Error al actualizar empleado", tipo: "error" });
     }
   };
 
-  const eliminarEmpleado = async (id) => {
-    if (!window.confirm("¿Está seguro de eliminar este empleado?")) return;
-    try {
-      const { error } = await supabase.from("empleados").delete().eq("id_empleado", id);
-      if (error) throw error;
-      setToast({ mostrar: true, mensaje: "Empleado eliminado", tipo: "exito" });
-      cargarEmpleados();
-    } catch (err) {
-      console.error(err);
-      setToast({ mostrar: true, mensaje: "Error al eliminar empleado", tipo: "error" });
-    }
+  const abrirModalEdicion = (empleado) => {
+    setEmpleadoEditar({
+      id_empleado: empleado.id_empleado,
+      nombre_empleado: empleado.nombre_empleado,
+      apellido_empleado: empleado.apellido_empleado,
+      celular: empleado.celular || "",
+      pin: empleado.pin || "",
+      email: empleado.email || "",
+      tipo_empleado: empleado.tipo_empleado || "mesero",
+    });
+    setMostrarModalEdicion(true);
   };
 
-  const empleadosPaginados = filtrados.slice(
-    (paginaActual - 1) * registrosPorPagina,
-    paginaActual * registrosPorPagina
-  );
+  const abrirModalEliminacion = (empleado) => {
+    setEmpleadoEliminar(empleado);
+    setMostrarModalEliminacion(true);
+  };
 
   return (
-    <Container className="mt-4">
-      <Row className="align-items-center mb-4">
+    <Container className="mt-3">
+      <Row className="align-items-center mb-3">
         <Col>
-          <h3><i className="bi bi-people-fill me-2"></i> Gestión de Empleados</h3>
+          <h3><i className="bi-person-badge-fill me-2"></i>Empleados</h3>
         </Col>
         <Col className="text-end">
-          <Button onClick={() => setMostrarRegistro(true)} variant="primary">
-            <i className="bi bi-plus-lg me-2"></i>Nuevo Empleado
+          <Button onClick={() => setMostrarModal(true)}>
+            <i className="bi-plus-lg me-1"></i>Nuevo Empleado
           </Button>
         </Col>
       </Row>
 
       <Row className="mb-4">
         <Col md={6}>
-          <CuadroBusquedas 
-            textoBusqueda={busqueda} 
-            manejarCambioBusqueda={(e) => setBusqueda(e.target.value)} 
+          <CuadroBusquedas
+            textoBusqueda={textoBusqueda}
+            manejarCambioBusqueda={(e) => setTextoBusqueda(e.target.value)}
           />
         </Col>
       </Row>
 
-      {loading ? (
-        <div className="text-center py-5"><Spinner animation="border" variant="primary" /></div>
-      ) : (
-        <>
-          <TablaEmpleados 
-            empleados={empleadosPaginados} 
-            abrirModalEdicion={(emp) => { setEmpleadoSeleccionado(emp); setMostrarEdicion(true); }}
-            abrirModalEliminacion={(emp) => eliminarEmpleado(emp.id_empleado)}
-            paginaActual={paginaActual}
-            registrosPorPagina={registrosPorPagina}
-          />
-          <Paginacion 
-            paginaActual={paginaActual}
-            totalRegistros={filtrados.length}
-            registrosPorPagina={registrosPorPagina}
-            establecerPaginaActual={setPaginaActual}
-            establecerRegistrosPorPagina={setRegistrosPorPagina}
-          />
-        </>
+      {/* Spinner de carga inicial */}
+      {cargando && (
+        <Row className="text-center my-5">
+          <Col>
+            <Spinner animation="border" variant="success" size="lg" />
+            <p className="mt-3 text-muted">Cargando empleados...</p>
+          </Col>
+        </Row>
       )}
 
-      <ModalRegistroEmpleado 
-        show={mostrarRegistro} 
-        onHide={() => setMostrarRegistro(false)}
+      {/* Alert cuando no hay coincidencias en la búsqueda */}
+      {!cargando && textoBusqueda.trim() && empleadosFiltrados.length === 0 && (
+        <Row className="mb-4">
+          <Col>
+            <Alert variant="info" className="text-center">
+              <i className="bi bi-info-circle me-2"></i>
+              No se encontraron empleados que coincidan con "{textoBusqueda}".
+            </Alert>
+          </Col>
+        </Row>
+      )}
+
+      {/* Mostrar tabla o tarjetas solo cuando hay resultados y ya cargó */}
+      {!cargando && empleadosFiltrados.length > 0 && (
+        <Row>
+          <Col xs={12} className="d-lg-none">
+            <TarjetaEmpleado
+              empleados={empleadosFiltrados}
+              abrirModalEdicion={abrirModalEdicion}
+              abrirModalEliminacion={abrirModalEliminacion}
+            />
+          </Col>
+          <Col lg={12} className="d-none d-lg-block">
+            <TablaEmpleados
+              empleados={empleadosFiltrados}
+              abrirModalEdicion={abrirModalEdicion}
+              abrirModalEliminacion={abrirModalEliminacion}
+            />
+          </Col>
+        </Row>
+      )}
+
+      {/* Modales */}
+      <ModalRegistroEmpleado
+        mostrarModal={mostrarModal}
+        setMostrarModal={setMostrarModal}
+        nuevoEmpleado={nuevoEmpleado}
+        setNuevoEmpleado={setNuevoEmpleado}
         agregarEmpleado={agregarEmpleado}
-        nuevaEmpleado={nuevoEmpleado}
-        manejoCambioInput={(e) => setNuevoEmpleado({...nuevoEmpleado, [e.target.name]: e.target.value})}
       />
 
-      <ModalEdicionEmpleado 
-        show={mostrarEdicion} 
-        onHide={() => setMostrarEdicion(false)}
-        empleado={empleadoSeleccionado}
+      <ModalEdicionEmpleado
+        mostrarModalEdicion={mostrarModalEdicion}
+        setMostrarModalEdicion={setMostrarModalEdicion}
+        empleadoEditar={empleadoEditar}
+        setEmpleadoEditar={setEmpleadoEditar}
         actualizarEmpleado={actualizarEmpleado}
       />
 
-      <NotificacionOperacion 
-        mostrar={toast.mostrar} 
-        mensaje={toast.mensaje} 
-        tipo={toast.tipo} 
-        onCerrar={() => setToast({...toast, mostrar: false})} 
+      <ModalEliminacionEmpleado
+        show={mostrarModalEliminacion}
+        onHide={() => setMostrarModalEliminacion(false)}
+        empleado={empleadoEliminar}
+        onUpdate={cargarEmpleados}
+        setToast={setToast}
+      />
+
+      <NotificacionOperacion
+        mostrar={toast.mostrar}
+        mensaje={toast.mensaje}
+        tipo={toast.tipo}
+        onCerrar={() => setToast({ ...toast, mostrar: false })}
       />
     </Container>
   );

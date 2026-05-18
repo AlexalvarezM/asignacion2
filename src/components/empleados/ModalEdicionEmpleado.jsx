@@ -1,39 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Modal, Form, Button, Row, Col } from "react-bootstrap";
 
-const ModalEdicionEmpleado = ({ show, onHide, empleado, actualizarEmpleado }) => {
-  const [datos, setDatos] = useState({
-    nombre: "",
-    apellido: "",
-    pin_acceso: "",
-    tipo_empleado: "",
-  });
-  const [loading, setLoading] = useState(false);
+const ModalEdicionEmpleado = ({
+  mostrarModalEdicion,
+  setMostrarModalEdicion,
+  empleadoEditar,
+  setEmpleadoEditar,
+  actualizarEmpleado
+}) => {
+  const [deshabilitado, setDeshabilitado] = useState(false);
 
-  useEffect(() => {
-    if (empleado) {
-      setDatos({
-        nombre: empleado.nombre || "",
-        apellido: empleado.apellido || "",
-        pin_acceso: empleado.pin_acceso || "",
-        tipo_empleado: empleado.tipo_empleado || "",
-      });
-    }
-  }, [empleado]);
-
-  const handleChange = (e) => {
+  const manejoCambio = (e) => {
     const { name, value } = e.target;
-    setDatos((prev) => ({ ...prev, [name]: value }));
+    setEmpleadoEditar(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleGuardar = async () => {
-    setLoading(true);
-    await actualizarEmpleado(datos);
-    setLoading(false);
+  const handleActualizar = async () => {
+    if (deshabilitado) return;
+    setDeshabilitado(true);
+    await actualizarEmpleado();
+    setDeshabilitado(false);
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered backdrop="static">
+    <Modal show={mostrarModalEdicion} onHide={() => setMostrarModalEdicion(false)} backdrop="static" centered>
       <Modal.Header closeButton>
         <Modal.Title>Editar Empleado</Modal.Title>
       </Modal.Header>
@@ -45,62 +35,86 @@ const ModalEdicionEmpleado = ({ show, onHide, empleado, actualizarEmpleado }) =>
                 <Form.Label>Nombre *</Form.Label>
                 <Form.Control
                   type="text"
-                  name="nombre"
-                  value={datos.nombre}
-                  onChange={handleChange}
-                  required
+                  name="nombre_empleado"
+                  value={empleadoEditar.nombre_empleado}
+                  onChange={manejoCambio}
                 />
               </Form.Group>
             </Col>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>Apellido *</Form.Label>
+                <Form.Label>Apellido</Form.Label>
                 <Form.Control
                   type="text"
-                  name="apellido"
-                  value={datos.apellido}
-                  onChange={handleChange}
-                  required
+                  name="apellido_empleado"
+                  value={empleadoEditar.apellido_empleado}
+                  onChange={manejoCambio}
                 />
               </Form.Group>
             </Col>
           </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Email (no editable)</Form.Label>
+            <Form.Control
+              type="email"
+              value={empleadoEditar.email}
+              disabled
+            />
+          </Form.Group>
+
           <Row>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>PIN de Acceso *</Form.Label>
+                <Form.Label>Celular</Form.Label>
                 <Form.Control
-                  type="password"
-                  name="pin_acceso"
-                  value={datos.pin_acceso}
-                  onChange={handleChange}
-                  required
+                  type="text"
+                  name="celular"
+                  value={empleadoEditar.celular}
+                  onChange={manejoCambio}
                 />
               </Form.Group>
             </Col>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>Tipo de Empleado *</Form.Label>
-                <Form.Select
-                  name="tipo_empleado"
-                  value={datos.tipo_empleado}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Seleccione...</option>
-                  <option value="Administrador">Administrador</option>
-                  <option value="Vendedor">Vendedor</option>
-                  <option value="Almacén">Almacén</option>
-                </Form.Select>
+                <Form.Label>PIN de acceso</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="pin"
+                  value={empleadoEditar.pin}
+                  onChange={manejoCambio}
+                  maxLength={6}
+                />
               </Form.Group>
             </Col>
           </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Rol / Tipo de Empleado</Form.Label>
+            <Form.Select
+              name="tipo_empleado"
+              value={empleadoEditar.tipo_empleado}
+              onChange={manejoCambio}
+            >
+              <option value="administrador">Administrador</option>
+              <option value="vendedor">Vendedor</option>
+              <option value="cajero">Cajero</option>
+              <option value="mesero">Mesero</option>
+              <option value="chef">Chef / Cocinero</option>
+            </Form.Select>
+          </Form.Group>
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide} disabled={loading}>Cancelar</Button>
-        <Button variant="primary" onClick={handleGuardar} disabled={loading}>
-          {loading ? "Actualizando..." : "Guardar Cambios"}
+        <Button variant="secondary" onClick={() => setMostrarModalEdicion(false)}>
+          Cancelar
+        </Button>
+        <Button 
+          variant="primary" 
+          onClick={handleActualizar}
+          disabled={deshabilitado}
+        >
+          {deshabilitado ? "Actualizando..." : "Actualizar Empleado"}
         </Button>
       </Modal.Footer>
     </Modal>
