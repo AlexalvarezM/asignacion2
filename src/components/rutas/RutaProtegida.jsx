@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from "react";
-import { Navigate, Outlet } from "react-router-dom";
-import { supabase } from "../../database/supabaseconfig";
+import React from "react"; 
+import { Navigate, Outlet } from "react-router-dom"; 
+import { useAuth } from "../../context/AuthContext"; 
 
-const RutaProtegida = () => {
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+const RutaProtegida = ({ children }) => { 
+  const { usuario, cargando } = useAuth(); 
 
-  useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+  // Mostrar indicador de carga mientras se verifica la sesión 
+  if (cargando) { 
+    return ( 
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}> 
+        <div className="text-center"> 
+          <div className="spinner-border text-primary" role="status"> 
+            <span className="visually-hidden">Cargando...</span> 
+          </div> 
+          <p className="mt-3 text-muted">Verificando sesión...</p> 
+        </div> 
+      </div> 
+    ); 
+  } 
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (loading) {
-    return <div className="text-center mt-5">Cargando sesión...</div>;
+  // Si no hay usuario autenticado, redirigir al login 
+  if (!usuario) {
+    return <Navigate to="/login" replace />;
   }
 
-  return session ? <Outlet /> : <Navigate to="/login" replace />;
-};
+  // Renderizar children si existen (uso tradicional) o Outlet (uso como layout route)
+  return children ? children : <Outlet />; 
+}; 
 
-export default RutaProtegida;
+export default RutaProtegida; 

@@ -19,34 +19,21 @@ const normalizarOpcional = (valor) => {
 
 const normalizarEmpleado = (empleado) => ({
   id_empleado: empleado.id_empleado,
-  nombre_empleado: empleado.nombre_empleado || empleado.nombre || "",
-  apellido_empleado: empleado.apellido_empleado || empleado.apellido || "",
+  nombre_empleado: empleado.nombre_empleado || "",
+  apellido_empleado: empleado.apellido_empleado || "",
   email: empleado.email || "",
   celular: empleado.celular || "",
-  pin: empleado.pin || empleado.pin_acceso || "",
+  pin: empleado.pin_acceso || empleado.pin || "",
   tipo_empleado: empleado.tipo_empleado || "mesero",
 });
 
-const esErrorDeEsquema = (error) => {
-  const mensaje = error?.message?.toLowerCase() || "";
-  return mensaje.includes("column") || mensaje.includes("schema cache") || mensaje.includes("does not exist");
-};
-
-const construirPayloadEmpleado = (empleado, esquema = "nuevo") => {
-  if (esquema === "legacy") {
-    return {
-      nombre: limpiarTexto(empleado.nombre_empleado),
-      apellido: normalizarOpcional(empleado.apellido_empleado),
-      pin_acceso: normalizarOpcional(empleado.pin),
-      tipo_empleado: limpiarTexto(empleado.tipo_empleado) || "mesero",
-    };
-  }
-
+const construirPayloadEmpleado = (empleado) => {
+  const apellido = normalizarOpcional(empleado.apellido_empleado);
   return {
     nombre_empleado: limpiarTexto(empleado.nombre_empleado),
-    apellido_empleado: normalizarOpcional(empleado.apellido_empleado),
-    celular: normalizarOpcional(empleado.celular),
-    pin: normalizarOpcional(empleado.pin),
+    apellido_empleado: apellido,
+    apellido: apellido || "", // Columna legacy con restricción NOT NULL
+    pin_acceso: normalizarOpcional(empleado.pin),
     email: limpiarTexto(empleado.email),
     tipo_empleado: limpiarTexto(empleado.tipo_empleado) || "mesero",
   };
@@ -110,41 +97,18 @@ const Empleados = () => {
   }, []);
 
   const insertarEmpleado = useCallback(async (empleado) => {
-    try {
-      const payloadNuevo = construirPayloadEmpleado(empleado, "nuevo");
-      const { error: errorNuevo } = await supabase.from("empleados").insert([payloadNuevo]);
-
-      if (!errorNuevo) return;
-      if (!esErrorDeEsquema(errorNuevo)) throw errorNuevo;
-
-      const payloadLegacy = construirPayloadEmpleado(empleado, "legacy");
-      await supabase.from("empleados").insert([payloadLegacy]);
-    } catch (error) {
-      console.error("Error al insertar empleado:", error);
-      throw error;
-    }
+    const payload = construirPayloadEmpleado(empleado);
+    const { error } = await supabase.from("empleados").insert([payload]);
+    if (error) throw error;
   }, []);
 
   const actualizarRegistroEmpleado = useCallback(async (empleado) => {
-    try {
-      const payloadNuevo = construirPayloadEmpleado(empleado, "nuevo");
-      const { error: errorNuevo } = await supabase
-        .from("empleados")
-        .update(payloadNuevo)
-        .eq("id_empleado", empleado.id_empleado);
-
-      if (!errorNuevo) return;
-      if (!esErrorDeEsquema(errorNuevo)) throw errorNuevo;
-
-      const payloadLegacy = construirPayloadEmpleado(empleado, "legacy");
-      await supabase
-        .from("empleados")
-        .update(payloadLegacy)
-        .eq("id_empleado", empleado.id_empleado);
-    } catch (error) {
-      console.error("Error al actualizar empleado:", error);
-      throw error;
-    }
+    const payload = construirPayloadEmpleado(empleado);
+    const { error } = await supabase
+      .from("empleados")
+      .update(payload)
+      .eq("id_empleado", empleado.id_empleado);
+    if (error) throw error;
   }, []);
 
   useEffect(() => {

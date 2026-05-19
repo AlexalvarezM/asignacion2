@@ -10,6 +10,7 @@ import Categorias from './views/Categorias';
 import Empleados from './views/Empleados';
 import Clientes from './views/Clientes';
 import Catalogo from './views/Catalogo';
+import Permisos from './views/Permisos';
 import Pagina404 from './views/Pagina404';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
           <Route path="/categorias" element={<Categorias />} />
           <Route path="/empleados" element={<Empleados />} />
           <Route path="/clientes" element={<Clientes />} />
+          <Route path="/permisos" element={<Permisos />} />
         </Route>
 
         {/* Ruta 404 */}

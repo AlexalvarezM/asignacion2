@@ -1,32 +1,17 @@
-import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Navbar, Nav, Container, Button, Dropdown } from 'react-bootstrap';
-import { supabase } from '../../database/supabaseconfig';
+import { Navbar, Nav, Container } from 'react-bootstrap';
+import { useAuth } from "../../context/AuthContext"; 
 import logo from '../../assets/logo.png';
 
 const Encabezado = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [session, setSession] = useState(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { tienePermiso, logout, usuario } = useAuth(); 
 
   const cerrarSesion = async () => {
-    await supabase.auth.signOut();
+    await logout();
     navigate('/login');
   };
-
-  const usuario = session?.user;
 
   return (
     <Navbar expand="lg" className="profe-navbar sticky-top" collapseOnSelect>
@@ -42,12 +27,27 @@ const Encabezado = () => {
 
         <Navbar.Collapse id="main-navbar">
           <Nav className="ms-auto align-items-center profe-links">
-            <Nav.Link as={Link} to="/" active={location.pathname === "/"} eventKey="1">Inicio</Nav.Link>
-            <Nav.Link as={Link} to="/categorias" active={location.pathname === "/categorias"} eventKey="2">Categorías</Nav.Link>
-            <Nav.Link as={Link} to="/productos" active={location.pathname === "/productos"} eventKey="3">Productos</Nav.Link>
-            <Nav.Link as={Link} to="/empleados" active={location.pathname === "/empleados"} eventKey="6">Empleados</Nav.Link>
-            <Nav.Link as={Link} to="/clientes" active={location.pathname === "/clientes"} eventKey="7">Clientes</Nav.Link>
-            <Nav.Link as={Link} to="/catalogo" active={location.pathname === "/catalogo"} eventKey="4">Catálogo</Nav.Link>
+            {tienePermiso('ver_inicio') && (
+              <Nav.Link as={Link} to="/" active={location.pathname === "/"} eventKey="1">Inicio</Nav.Link>
+            )}
+            {tienePermiso('ver_categorias') && (
+              <Nav.Link as={Link} to="/categorias" active={location.pathname === "/categorias"} eventKey="2">Categorías</Nav.Link>
+            )}
+            {tienePermiso('ver_productos') && (
+              <Nav.Link as={Link} to="/productos" active={location.pathname === "/productos"} eventKey="3">Productos</Nav.Link>
+            )}
+            {tienePermiso('ver_empleados') && (
+              <Nav.Link as={Link} to="/empleados" active={location.pathname === "/empleados"} eventKey="6">Empleados</Nav.Link>
+            )}
+            {tienePermiso('ver_clientes') && (
+              <Nav.Link as={Link} to="/clientes" active={location.pathname === "/clientes"} eventKey="7">Clientes</Nav.Link>
+            )}
+            {tienePermiso('ver_catalogo') && (
+              <Nav.Link as={Link} to="/catalogo" active={location.pathname === "/catalogo"} eventKey="4">Catálogo</Nav.Link>
+            )}
+            {tienePermiso('ver_permisos') && (
+              <Nav.Link as={Link} to="/permisos" active={location.pathname === "/permisos"} eventKey="8">Permisos</Nav.Link>
+            )}
             {usuario && (
               <Nav.Link 
                 onClick={cerrarSesion} 
