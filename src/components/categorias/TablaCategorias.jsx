@@ -6,6 +6,7 @@ const TablaCategorias = ({
   categorias,
   abrirModalEdicion,
   abrirModalEliminacion,
+  generarPDFCategoria,
   paginaActual,
   registrosPorPagina
 }) => {
@@ -52,15 +53,27 @@ const TablaCategorias = ({
                     size="sm"
                     className="m-1"
                     onClick={() => abrirModalEdicion(categoria)}
+                    title="Editar"
                   >
                     <i className="bi bi-pencil"></i>
                   </Button>
                   <Button
                     variant="outline-danger"
                     size="sm"
+                    className="m-1"
                     onClick={() => abrirModalEliminacion(categoria)}
+                    title="Eliminar"
                   >
                     <i className="bi bi-trash"></i>
+                  </Button>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="m-1"
+                    onClick={() => generarPDFCategoria(categoria)}
+                    title="Generar PDF"
+                  >
+                    <i className="bi bi-file-earmark-pdf"></i>
                   </Button>
                 </td>
               </tr>

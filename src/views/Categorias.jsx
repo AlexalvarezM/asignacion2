@@ -10,6 +10,8 @@ import ModalEdicionCategoria from "../components/categorias/ModalEdicionCategori
 import ModalEliminacionCategoria from "../components/categorias/ModalEliminacionCategoria";
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
 import Paginacion from "../components/ordenamiento/Paginacion";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const Categorias = () => {
   const [toast, setToast] = useState({ mostrar: false, mensaje: "", tipo: "" });
@@ -73,6 +75,56 @@ const Categorias = () => {
   const abrirModalEliminacion = (categoria) => {
     setCategoriaAEliminar(categoria);
     setMostrarModalEliminacion(true);
+  };
+
+  const generarPDFCategoria = (categoria) => {
+    const doc = new jsPDF();
+
+    // Título
+    doc.setFontSize(18);
+    doc.text("Reporte de Categoría", 14, 20);
+
+    // Línea decorativa
+    doc.line(14, 25, 195, 25);
+
+    // Información de la categoría
+    doc.setFontSize(12);
+
+    autoTable(doc, {
+      startY: 35,
+      head: [["Campo", "Valor"]],
+      body: [
+        ["ID", categoria.id_categoria],
+        ["Nombre", categoria.nombre_categoria],
+        ["Descripción", categoria.descripcion_categoria],
+      ],
+    });
+
+    // Descargar PDF
+    doc.save(`categoria_${categoria.id_categoria}.pdf`);
+  };
+
+  const exportarTodasLasCategorias = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text("Reporte General de Categorías", 14, 20);
+    
+    doc.line(14, 25, 195, 25);
+    
+    const body = categorias.map(cat => [
+      cat.id_categoria,
+      cat.nombre_categoria,
+      cat.descripcion_categoria
+    ]);
+    
+    autoTable(doc, {
+      startY: 35,
+      head: [["ID", "Nombre", "Descripción"]],
+      body: body,
+    });
+    
+    doc.save("todas_las_categorias.pdf");
   };
 
   const cargarCategorias = async () => {
@@ -176,9 +228,13 @@ const Categorias = () => {
             </h3>
           </Col>
           <Col xs={5} md={4} className="text-end">
-            <Button onClick={() => setMostrarModal(true)} className="profe-add-btn">
+            <Button onClick={() => setMostrarModal(true)} className="profe-add-btn me-2">
               <i className="bi bi-plus me-1"></i>
               Nueva Categoría
+            </Button>
+            <Button onClick={exportarTodasLasCategorias} variant="outline-danger" className="profe-add-btn">
+              <i className="bi bi-file-earmark-pdf me-1"></i>
+              Exportar Todo
             </Button>
           </Col>
         </Row>
@@ -237,6 +293,7 @@ const Categorias = () => {
                 categorias={categoriasPaginadas}
                 abrirModalEdicion={abrirModalEdicion}
                 abrirModalEliminacion={abrirModalEliminacion}
+                generarPDFCategoria={generarPDFCategoria}
                 paginaActual={paginaActual}
                 registrosPorPagina={registrosPorPagina}
               />
