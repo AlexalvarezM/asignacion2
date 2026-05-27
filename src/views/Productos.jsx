@@ -20,6 +20,7 @@ const Productos = () => {
     descripcion_producto: "",
     categoria_producto: "",
     precio_producto: "",
+    precio_dolar: "",
     stock: "",
     archivo: null,
   });
@@ -31,6 +32,7 @@ const Productos = () => {
     descripcion_producto: "",
     categoria_producto: "",
     precio_producto: "",
+    precio_dolar: "",
     stock: "",
     imagen_url: "",
     archivo: null,
@@ -138,12 +140,13 @@ const Productos = () => {
         !nuevoProducto.nombre_producto ||
         !nuevoProducto.categoria_producto ||
         !nuevoProducto.precio_producto ||
+        !nuevoProducto.precio_dolar ||
         !nuevoProducto.stock ||
         !nuevoProducto.archivo
       ) {
         setToast({
           mostrar: true,
-          mensaje: "Completa los campos obligatorios (nombre, categoría, precio, stock e imagen).",
+          mensaje: "Completa los campos obligatorios (nombre, categoría, precios, stock e imagen).",
           tipo: "advertencia",
         });
         return;
@@ -171,6 +174,7 @@ const Productos = () => {
           descripcion_producto: nuevoProducto.descripcion_producto || null,
           categoria_producto: parseInt(nuevoProducto.categoria_producto),
           precio_producto: parseFloat(nuevoProducto.precio_producto),
+          precio_dolar: parseFloat(nuevoProducto.precio_dolar),
           stock: parseInt(nuevoProducto.stock),
           imagen_url: urlImagen,
         },
@@ -183,6 +187,7 @@ const Productos = () => {
         descripcion_producto: "",
         categoria_producto: "",
         precio_producto: "",
+        precio_dolar: "",
         stock: "",
         archivo: null,
       });
@@ -201,6 +206,7 @@ const Productos = () => {
         !productoAEditar.nombre_producto ||
         !productoAEditar.categoria_producto ||
         !productoAEditar.precio_producto ||
+        !productoAEditar.precio_dolar ||
         !productoAEditar.stock
       ) {
         setToast({
@@ -240,6 +246,7 @@ const Productos = () => {
           descripcion_producto: productoAEditar.descripcion_producto || null,
           categoria_producto: parseInt(productoAEditar.categoria_producto),
           precio_producto: parseFloat(productoAEditar.precio_producto),
+          precio_dolar: parseFloat(productoAEditar.precio_dolar),
           stock: parseInt(productoAEditar.stock),
           imagen_url: urlImagen,
         })

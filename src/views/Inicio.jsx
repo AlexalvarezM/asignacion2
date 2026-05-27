@@ -10,7 +10,7 @@ const Inicio = () => {
           <Col lg={7} className="text-center text-lg-start animate-up">
             <BadgeCustom text="Sistema de Gestión" />
             <h1 className="display-2 fw-extrabold text-main mb-3">
-              Bienvenido a <span className="text-primary">Discosa</span>
+              Bienvenido a <span className="text-primary">OmniLex</span>
             </h1>
             <p className="lead fs-4 text-muted mb-0 pe-lg-5">
               Optimiza tu inventario y organiza tus categorías con elegancia y precisión divina. 

@@ -35,6 +35,7 @@ const construirPayloadEmpleado = (empleado) => {
     apellido: apellido || "", // Columna legacy con restricción NOT NULL
     pin_acceso: normalizarOpcional(empleado.pin),
     email: limpiarTexto(empleado.email),
+    celular: normalizarOpcional(empleado.celular),
     tipo_empleado: limpiarTexto(empleado.tipo_empleado) || "mesero",
   };
 };

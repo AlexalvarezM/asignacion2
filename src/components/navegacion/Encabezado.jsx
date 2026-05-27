@@ -17,8 +17,8 @@ const Encabezado = () => {
     <Navbar expand="lg" className="profe-navbar sticky-top" collapseOnSelect>
       <Container fluid className="px-4">
         <Navbar.Brand as={Link} to="/" className="d-flex align-items-center profe-brand">
-          <img src={logo} alt="Discosa Logo" width="30" height="30" className="me-2" />
-          <span>Discosa</span>
+          <img src={logo} alt="OmniLex Logo" width="30" height="30" className="me-2" />
+          <span>OmniLex</span>
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="main-navbar" className="border-0 shadow-none">
@@ -41,6 +41,9 @@ const Encabezado = () => {
             )}
             {tienePermiso('ver_clientes') && (
               <Nav.Link as={Link} to="/clientes" active={location.pathname === "/clientes"} eventKey="7">Clientes</Nav.Link>
+            )}
+            {tienePermiso('ver_ventas') && (
+              <Nav.Link as={Link} to="/ventas" active={location.pathname === "/ventas"} eventKey="9">Ventas</Nav.Link>
             )}
             {tienePermiso('ver_catalogo') && (
               <Nav.Link as={Link} to="/catalogo" active={location.pathname === "/catalogo"} eventKey="4">Catálogo</Nav.Link>

@@ -33,7 +33,7 @@ const TarjetasProductos = ({ productos, onUpdate, setToast, abrirModalEdicion })
                   )}
                   <div className="position-absolute bottom-0 start-0 m-3">
                     <Badge bg="primary" className="px-3 py-2 rounded-pill shadow text-dark fw-bold">
-                      ${parseFloat(producto.precio_producto || 0).toLocaleString()}
+                      C$ {parseFloat(producto.precio_producto || 0).toLocaleString()} / $ {parseFloat(producto.precio_dolar || 0).toLocaleString()}
                     </Badge>
                   </div>
                   {producto.stock <= 5 && (

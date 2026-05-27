@@ -1,65 +1,79 @@
 import React, { useState } from "react";
-import { Modal, Form, Button, Row, Col } from "react-bootstrap";
+import { Modal, Form, Button } from "react-bootstrap";
 
-const ModalRegistroCliente = ({ show, onHide, agregarCliente, nuevaCliente, manejoCambioInput }) => {
-  const [loading, setLoading] = useState(false);
+const ModalRegistroCliente = ({
+  mostrarModal,
+  setMostrarModal,
+  nuevoCliente,
+  manejoCambioInput,
+  agregarCliente,
+}) => {
+  const [deshabilitado, setDeshabilitado] = useState(false);
 
-  const handleAgregar = async () => {
-    setLoading(true);
+  const handleRegistrar = async () => {
+    if (deshabilitado) return;
+    setDeshabilitado(true);
     await agregarCliente();
-    setLoading(false);
+    setDeshabilitado(false);
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered backdrop="static">
+    <Modal
+      show={mostrarModal}
+      onHide={() => setMostrarModal(false)}
+      backdrop="static"
+      keyboard={false}
+      centered
+    >
       <Modal.Header closeButton>
-        <Modal.Title>Registrar Cliente</Modal.Title>
+        <Modal.Title>Agregar Nuevo Cliente</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Nombre *</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="nombre"
-                  value={nuevaCliente.nombre}
-                  onChange={manejoCambioInput}
-                  required
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Apellido *</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="apellido"
-                  value={nuevaCliente.apellido}
-                  onChange={manejoCambioInput}
-                  required
-                />
-              </Form.Group>
-            </Col>
-          </Row>
+          <Form.Group className="mb-3">
+            <Form.Label>Nombre *</Form.Label>
+            <Form.Control
+              type="text"
+              name="nombre_cliente"
+              value={nuevoCliente.nombre_cliente}
+              onChange={manejoCambioInput}
+              placeholder="Ingresa el nombre"
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Apellido</Form.Label>
+            <Form.Control
+              type="text"
+              name="apellido_cliente"
+              value={nuevoCliente.apellido_cliente}
+              onChange={manejoCambioInput}
+              placeholder="Ingresa el apellido"
+            />
+          </Form.Group>
+
           <Form.Group className="mb-3">
             <Form.Label>Celular *</Form.Label>
             <Form.Control
-              type="text"
+              type="tel"
               name="celular"
-              value={nuevaCliente.celular}
+              value={nuevoCliente.celular}
               onChange={manejoCambioInput}
-              placeholder="Ej: 8888-8888"
-              required
+              placeholder="Ej: 505 1234 5678"
             />
           </Form.Group>
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide} disabled={loading}>Cancelar</Button>
-        <Button variant="primary" onClick={handleAgregar} disabled={loading}>
-          {loading ? "Guardando..." : "Guardar Cliente"}
+        <Button variant="secondary" onClick={() => setMostrarModal(false)}>
+          Cancelar
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleRegistrar}
+          disabled={!nuevoCliente.nombre_cliente.trim() || !nuevoCliente.celular.trim() || deshabilitado}
+        >
+          Guardar Cliente
         </Button>
       </Modal.Footer>
     </Modal>

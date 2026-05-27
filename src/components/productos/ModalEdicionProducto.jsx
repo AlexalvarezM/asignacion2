@@ -67,9 +67,9 @@ const ModalEdicionProducto = ({
               </Form.Group>
             </Col>
 
-            <Col xs={12} md={6}>
+            <Col xs={12} md={4}>
               <Form.Group className="mb-3">
-                <Form.Label>Precio de venta *</Form.Label>
+                <Form.Label>Precio de venta (C$) *</Form.Label>
                 <Form.Control
                   type="number"
                   step="0.01"
@@ -77,13 +77,29 @@ const ModalEdicionProducto = ({
                   name="precio_producto"
                   value={productoAEditar.precio_producto || ""}
                   onChange={manejoCambioInputEdicion}
-                  placeholder="Precio de venta"
+                  placeholder="Precio en Córdobas"
                   required
                 />
               </Form.Group>
             </Col>
 
-            <Col xs={12} md={6}>
+            <Col xs={12} md={4}>
+              <Form.Group className="mb-3">
+                <Form.Label>Precio de venta ($) *</Form.Label>
+                <Form.Control
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  name="precio_dolar"
+                  value={productoAEditar.precio_dolar || ""}
+                  onChange={manejoCambioInputEdicion}
+                  placeholder="Precio en Dólares"
+                  required
+                />
+              </Form.Group>
+            </Col>
+
+            <Col xs={12} md={4}>
               <Form.Group className="mb-3">
                 <Form.Label>Stock *</Form.Label>
                 <Form.Control
@@ -151,7 +167,7 @@ const ModalEdicionProducto = ({
         <Button
           variant="primary"
           onClick={handleActualizar}
-          disabled={deshabilitado || !productoAEditar.nombre_producto || !productoAEditar.categoria_producto || !productoAEditar.precio_producto || !productoAEditar.stock}
+          disabled={deshabilitado || !productoAEditar.nombre_producto || !productoAEditar.categoria_producto || !productoAEditar.precio_producto || !productoAEditar.precio_dolar || !productoAEditar.stock}
         >
           {deshabilitado ? "Actualizando..." : "Actualizar"}
         </Button>

@@ -9,11 +9,11 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function test() {
   const { data, error } = await supabase
-    .from('permisos')
+    .from('empleados')
     .select('*')
-    .order('rol', { ascending: true });
+    .limit(1);
   
-  console.log("Permisos:", data);
+  console.log("Empleado record:", data);
   console.log("Error:", error);
 }
 

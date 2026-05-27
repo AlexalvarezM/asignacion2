@@ -63,7 +63,7 @@ const ModalRegistroEmpleado = ({
               name="email"
               value={nuevoEmpleado.email}
               onChange={manejoCambio}
-              placeholder="ejemplo@discosa.com"
+              placeholder="ejemplo@omnilex.com"
             />
           </Form.Group>
 
