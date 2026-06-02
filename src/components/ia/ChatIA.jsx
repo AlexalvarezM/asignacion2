@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Modal, Button, Form, Spinner, Table } from 'react-bootstrap';
+import { Modal, Button, Form, Spinner } from 'react-bootstrap';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '../../database/supabaseconfig';
+import './ChatIA.css';
 
 const ChatIA = ({ mostrar, onCerrar }) => {
   const [mensajes, setMensajes] = useState([]);
@@ -22,12 +23,12 @@ const ChatIA = ({ mostrar, onCerrar }) => {
   - empleados (id_empleado, nombre_empleado, apellido_empleado, email, celular, tipo_empleado)
   `;
 
-  const enviarConsulta = async () => {
-    if (!entrada.trim()) return;
+  const enviarConsulta = async (consultaDirecta) => {
+    const consultaActual = typeof consultaDirecta === 'string' ? consultaDirecta : entrada;
+    if (!consultaActual.trim()) return;
 
-    const mensajeUsuario = { tipo: 'usuario', contenido: entrada };
+    const mensajeUsuario = { tipo: 'usuario', contenido: consultaActual };
     setMensajes(prev => [...prev, mensajeUsuario]);
-    const consultaActual = entrada;
     setEntrada('');
     setCargando(true);
 
@@ -56,12 +57,10 @@ const ChatIA = ({ mostrar, onCerrar }) => {
       `;
 
       const resultado = await modelo.generateContent(prompt);
-      let texto = resultado.response.text().trim();
+      const textoRaw = resultado.response.text().trim();
 
-      // Limpieza de respuesta generada en caso de que el modelo incluya formato no deseado
-      texto = texto.replace(/```[\s\S]*?```/g, '').trim();
-
-      const match = texto.match(/\{[\s\S]*\}/);
+      // Extrae directamente el bloque de llaves JSON del texto devuelto por la IA
+      const match = textoRaw.match(/\{[\s\S]*\}/);
       if (!match) throw new Error("No se pudo extraer JSON de la IA");
 
       const respuestaIA = JSON.parse(match[0]);
@@ -87,7 +86,7 @@ const ChatIA = ({ mostrar, onCerrar }) => {
       const mensajeRespuesta = {
         tipo: 'ia',
         explicacion: respuestaIA.explicacion || "Consulta ejecutada correctamente",
-        columnas: respuestaIA.columnas || (datosExtraidos.length > 0 ? Object.keys(datosExtraidos[0]) : []),
+        columnas: datosExtraidos.length > 0 ? Object.keys(datosExtraidos[0]) : (respuestaIA.columnas || []),
         datos: datosExtraidos
       };
 
@@ -105,90 +104,214 @@ const ChatIA = ({ mostrar, onCerrar }) => {
     setCargando(false);
   };
 
+  const formatearValor = (valor, columna) => {
+    const colLower = columna.toLowerCase();
+    const esDinero = colLower.includes('total') || colLower.includes('precio') || colLower.includes('monto') || colLower.includes('subtotal') || colLower.includes('venta') || colLower.includes('facturado') || colLower.includes('comprado');
+    const esConteo = colLower.includes('cantidad') || colLower.includes('suma') || colLower.includes('count') || colLower.includes('conteo') || colLower.includes('numero') || colLower.includes('número');
+
+    if (valor === null || valor === undefined) {
+      if (esDinero) return '$0.00';
+      if (esConteo) return '0';
+      return '-';
+    }
+
+    // Si es un número (o string numérico válido)
+    if (typeof valor === 'number' || (typeof valor === 'string' && valor.trim() !== '' && !isNaN(Number(valor)))) {
+      const num = Number(valor);
+      if (esDinero) {
+        return `$${num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      if (esConteo) {
+        return num.toLocaleString('es-ES', { maximumFractionDigits: 0 });
+      }
+      return num.toString();
+    }
+
+    return String(valor);
+  };
+
   useEffect(() => {
     finChatRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensajes]);
 
   return (
-    <Modal show={mostrar} onHide={onCerrar} size="xl" centered backdrop="static">
-      <Modal.Header closeButton>
-        <Modal.Title>Consultas Inteligentes</Modal.Title>
-      </Modal.Header>
-      <Modal.Body style={{ height: "68vh", overflowY: "auto" }}>
-        <div className="d-flex flex-column h-100">
-          <div className="flex-grow-1 overflow-auto mb-3 pe-2">
-            {mensajes.length === 0 && (
-              <div className="text-center text-muted mt-5">
-                <h5>¿Qué información necesitas?</h5>
-                <p className="mt-2">Ejemplos:</p>
-                <ul className="text-start">
-                  <li>Ventas totales de este mes</li>
-                  <li>Los 10 productos más vendidos</li>
-                  <li>Clientes que más han comprado</li>
-                  <li>Ventas por empleado</li>
-                </ul>
+    <Modal 
+      show={mostrar} 
+      onHide={onCerrar} 
+      centered 
+      backdropClassName="custom-chat-backdrop" 
+      dialogClassName="custom-chat-dialog"
+      backdrop="static"
+    >
+      {/* Cabecera superior personalizada */}
+      <div className="custom-chat-header">
+        <h3 className="custom-chat-title">Consultas Inteligentes</h3>
+        <button className="custom-chat-close-btn" onClick={onCerrar} aria-label="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div className="d-flex flex-column h-100">
+        {/* Contenedor principal de mensajes */}
+        <div className="custom-chat-messages-scroll pe-1">
+          {mensajes.length === 0 && (
+            <div className="custom-chat-welcome">
+              <h4>¿Qué información necesitas?</h4>
+              <p>Ejemplos:</p>
+              
+              <div className="custom-chat-suggestions">
+                <button 
+                  className="suggestion-pill-btn pill-btn-1" 
+                  onClick={() => enviarConsulta('Ventas totales de este mes')}
+                  disabled={cargando}
+                >
+                  <span className="pill-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10"></line>
+                      <line x1="12" y1="20" x2="12" y2="4"></line>
+                      <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                  </span>
+                  Ventas totales de este mes
+                </button>
+
+                <button 
+                  className="suggestion-pill-btn pill-btn-2" 
+                  onClick={() => enviarConsulta('Los 10 productos más vendidos')}
+                  disabled={cargando}
+                >
+                  <span className="pill-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6V9Z" />
+                      <path d="M18 9H19.5a2.5 2.5 0 0 0 0-5H18V9Z" />
+                      <path d="M12 22V17" />
+                      <path d="M12 17C14.7614 17 17 14.7614 17 12V3H7V12C7 14.7614 9.23858 17 12 17Z" />
+                      <path d="M8 22H16" />
+                    </svg>
+                  </span>
+                  Los 10 productos más vendidos
+                </button>
+
+                <button 
+                  className="suggestion-pill-btn pill-btn-3" 
+                  onClick={() => enviarConsulta('Clientes que más han comprado')}
+                  disabled={cargando}
+                >
+                  <span className="pill-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </span>
+                  Clientes que más han comprado
+                </button>
+
+                <button 
+                  className="suggestion-pill-btn pill-btn-4" 
+                  onClick={() => enviarConsulta('Ventas por empleado')}
+                  disabled={cargando}
+                >
+                  <span className="pill-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 21v-2a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v2" />
+                      <circle cx="8.5" cy="7" r="3" />
+                      <path d="M18 16V10" />
+                      <path d="M21 16V6" />
+                      <path d="M18 16h4" />
+                    </svg>
+                  </span>
+                  Ventas por empleado
+                </button>
               </div>
-            )}
+            </div>
+          )}
 
-            {mensajes.map((msg, index) => (
-              <div key={index} className={`mb-4 ${msg.tipo === 'usuario' ? 'text-end' : ''}`}>
-                <div className={`d-inline-block p-3 rounded-3 ${msg.tipo === 'usuario' ? 'bg-primary text-white' : 'bg-light border'}`}
-                  style={{ maxWidth: '90%' }}>
-                  <strong>{msg.tipo === 'usuario' ? 'Tú:' : 'Asistente IA:'}</strong><br />
-                  
-                  {msg.tipo === 'usuario' ? (
-                    <p className="mb-0">{msg.contenido}</p>
-                  ) : (
-                    msg.explicacion
-                  )}
+          {mensajes.map((msg, index) => (
+            <div key={index} className={`msg-bubble ${msg.tipo === 'usuario' ? 'msg-bubble-user' : 'msg-bubble-ia'}`}>
+              <div className={msg.tipo === 'usuario' ? 'msg-header-user' : 'msg-header-ia'}>
+                {msg.tipo === 'usuario' ? (
+                  'Tú'
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                    Asistente IA
+                  </>
+                )}
+              </div>
+              
+              <div className="msg-content">
+                {msg.tipo === 'usuario' ? (
+                  <p className="mb-0">{msg.contenido}</p>
+                ) : (
+                  <p className="mb-0">{msg.explicacion}</p>
+                )}
+              </div>
 
-                  {msg.datos && msg.datos.length > 0 && (
-                    <Table striped bordered hover size="sm" responsive className="mt-3">
-                      <thead>
-                        <tr>
-                          {msg.columnas.map((col, i) => (
-                            <th key={i}>{col.replace(/_/g, ' ')}</th>
+              {msg.datos && msg.datos.length > 0 && (
+                <div className="custom-table-wrapper">
+                  <table className="custom-results-table">
+                    <thead>
+                      <tr>
+                        {msg.columnas.map((col, i) => (
+                          <th key={i}>{col.replace(/_/g, ' ')}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {msg.datos.map((fila, i) => (
+                        <tr key={i}>
+                          {msg.columnas.map((col, j) => (
+                            <td key={j}>{formatearValor(fila[col], col)}</td>
                           ))}
                         </tr>
-                      </thead>
-                      <tbody>
-                        {msg.datos.map((fila, i) => (
-                          <tr key={i}>
-                            {msg.columnas.map((col, j) => (
-                              <td key={j}>{fila[col]}</td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  )}
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
+          ))}
 
-            {cargando && (
-              <div className="text-center py-3">
-                <Spinner animation="border" size="sm" /> Procesando consulta...
-              </div>
-            )}
-            <div ref={finChatRef} />
-          </div>
+          {cargando && (
+            <div className="custom-loading-spinner">
+              <Spinner animation="border" size="sm" /> Procesando consulta...
+            </div>
+          )}
+          <div ref={finChatRef} />
+        </div>
 
+        {/* Formulario de entrada inferior */}
+        <div className="custom-chat-footer">
           <Form onSubmit={(e) => { e.preventDefault(); enviarConsulta(); }}>
-            <div className="d-flex gap-2">
-              <Form.Control
-                value={entrada}
-                onChange={(e) => setEntrada(e.target.value)}
-                placeholder="Escribe tu consulta en lenguaje natural..."
-                disabled={cargando}
-              />
-              <Button variant="primary" onClick={enviarConsulta} disabled={cargando || !entrada.trim()}>
+            <div className="custom-input-group">
+              <div className="custom-input-wrapper">
+                <Form.Control
+                  value={entrada}
+                  onChange={(e) => setEntrada(e.target.value)}
+                  placeholder="Escribe tu consulta en lenguaje natural..."
+                  disabled={cargando}
+                  className="custom-chat-input"
+                />
+                <span className="ai-input-badge">IA</span>
+              </div>
+              <Button 
+                onClick={() => enviarConsulta()} 
+                disabled={cargando || !entrada.trim()}
+                className="custom-send-btn"
+              >
                 Enviar
               </Button>
             </div>
           </Form>
         </div>
-      </Modal.Body>
+      </div>
     </Modal>
   );
 };
