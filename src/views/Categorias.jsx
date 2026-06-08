@@ -232,6 +232,28 @@ const Categorias = () => {
     setMostrarModalCorreo(true);
   };
 
+  const copiarCategoria = async (categoria) => {
+    if (!categoria) return;
+
+    const texto = `ID: ${categoria.id_categoria}\nCategoría: ${categoria.nombre_categoria}\nDescripción: ${categoria.descripcion_categoria || 'Sin descripción'}`;
+
+    try {
+      await navigator.clipboard.writeText(texto);
+      setToast({
+        mostrar: true,
+        mensaje: `Categoría "${categoria.nombre_categoria}" copiada al portapapeles.`,
+        tipo: "exito",
+      });
+    } catch (err) {
+      console.error("Error al copiar:", err);
+      setToast({
+        mostrar: true,
+        mensaje: "No se pudo copiar al portapapeles",
+        tipo: "error",
+      });
+    }
+  };
+
   const formatearCategoriasParaCorreo = () => {
     if (categorias.length === 0) return "No hay categorías registradas.";
 
@@ -303,25 +325,20 @@ const Categorias = () => {
     <div className="min-vh-100 bg-secondary-subtle">
       <Container className="profe-page py-4">
         <Row className="align-items-center mb-3">
-          <Col xs={8} sm={8} md={8} lg={8} className="d-flex align-items-center">
-            <h3 className="mb-0">
-              <i className="bi bi-bookmark-plus-fill me-2"></i> Categorías
+          <Col xs={12} sm={6} md={6}>
+            <h3 className="profe-page-title mb-0">
+              <i className="bi bi-bookmark-plus-fill me-2" style={{ fontSize: '1.5rem' }}></i>
+              Categorías
             </h3>
           </Col>
-          <Col xs={2} sm={2} md={2} lg={2} className="text-end">
-            <Button variant="primary" onClick={abrirModalCorreo} size="md">
-              <i className="bi bi-envelope"></i>
-              <span className="d-none d-lg-inline ms-2">Enviar por Correo</span>
+          <Col xs={12} sm={6} md={6} className="text-end mt-2 mt-sm-0">
+            <Button onClick={abrirModalCorreo} className="profe-add-btn me-2">
+              <i className="bi bi-envelope me-1"></i>
+              Enviar por Correo
             </Button>
-          </Col>
-          <Col xs={2} sm={2} md={2} lg={2} className="text-end">
-            <Button
-              variant="primary"
-              onClick={() => setMostrarModal(true)}
-              size="md"
-            >
-              <i className="bi bi-plus-lg"></i>
-              <span className="d-none d-lg-inline ms-2">Nueva Categoría</span>
+            <Button onClick={() => setMostrarModal(true)} className="profe-add-btn">
+              <i className="bi bi-plus me-1"></i>
+              Nueva Categoría
             </Button>
           </Col>
         </Row>
@@ -371,6 +388,7 @@ const Categorias = () => {
                 abrirModalEliminacion={abrirModalEliminacion}
                 paginaActual={paginaActual}
                 registrosPorPagina={registrosPorPagina}
+                copiarCategoria={copiarCategoria}
               />
             </Col>
 
@@ -383,6 +401,7 @@ const Categorias = () => {
                 generarPDFCategoria={generarPDFCategoria}
                 paginaActual={paginaActual}
                 registrosPorPagina={registrosPorPagina}
+                copiarCategoria={copiarCategoria}
               />
             </Col>
           </Row>

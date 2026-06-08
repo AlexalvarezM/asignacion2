@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Row, Col, Card, Button, Badge } from "react-bootstrap";
 import ModalEliminacionProducto from "./ModalEliminacionProducto";
 
-const TarjetasProductos = ({ productos, onUpdate, setToast, abrirModalEdicion }) => {
+const TarjetasProductos = ({ productos, onUpdate, setToast, abrirModalEdicion, copiarProducto, generarQRImagen }) => {
   const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
 
@@ -65,19 +65,37 @@ const TarjetasProductos = ({ productos, onUpdate, setToast, abrirModalEdicion })
                     <span className="text-muted small">
                       <i className="bi bi-box me-1"></i> Stock: {producto.stock}
                     </span>
-                    <div className="d-flex gap-2">
+                    <div className="d-flex gap-2 w-100">
                       <Button 
                         variant="outline-primary" 
                         className="flex-grow-1 py-2 fw-bold"
                         onClick={() => abrirModalEdicion(producto)}
+                        title="Editar"
                       >
-                        <i className="bi bi-pencil-square me-2"></i> Editar
+                        <i className="bi bi-pencil-square me-1"></i> Editar
+                      </Button>
+                      <Button 
+                        variant="outline-success" 
+                        className="py-2 fw-bold"
+                        onClick={() => copiarProducto(producto)}
+                        title="Copiar al portapapeles"
+                      >
+                        <i className="bi bi-clipboard"></i>
+                      </Button>
+                      <Button 
+                        variant="outline-primary" 
+                        className="py-2 fw-bold"
+                        onClick={() => generarQRImagen(producto)}
+                        title="Generar código QR de la imagen"
+                      >
+                        <i className="bi bi-qr-code"></i>
                       </Button>
                       <Button 
                         variant="outline-accent" 
-                        className="flex-grow-1 py-2 fw-bold"
+                        className="py-2 fw-bold"
                         style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }}
                         onClick={() => handleEliminar(producto)}
+                        title="Eliminar"
                       >
                         <i className="bi bi-trash3-fill"></i>
                       </Button>

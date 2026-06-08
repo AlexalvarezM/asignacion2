@@ -7,7 +7,8 @@ const TarjetaCategoria = ({
   abrirModalEdicion,
   abrirModalEliminacion,
   paginaActual,
-  registrosPorPagina
+  registrosPorPagina,
+  copiarCategoria
 }) => {
   const [idTarjetaActiva, setIdTarjetaActiva] = useState(null);
 
@@ -109,6 +110,19 @@ const TarjetaCategoria = ({
                         aria-label={`Eliminar ${categoria.nombre_categoria}`}
                       >
                         <i className="bi bi-trash"></i>
+                      </Button>
+
+                      <Button
+                        variant="outline-success"
+                        size="sm"
+                        onClick={() => {
+                          copiarCategoria(categoria);
+                          setIdTarjetaActiva(null);
+                        }}
+                        title="Copiar al portapapeles"
+                        aria-label={`Copiar ${categoria.nombre_categoria}`}
+                      >
+                        <i className="bi bi-clipboard"></i>
                       </Button>
                     </div>
                   </div>

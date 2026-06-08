@@ -6,6 +6,7 @@ import ModalEdicionProducto from "../components/productos/ModalEdicionProducto";
 import NotificacionOperacion from "../components/NotificacionOperacion";
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
 import TarjetasProductos from "../components/productos/TarjetasProductos";
+import ModalQRProducto from "../components/productos/ModalQRProducto";
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
@@ -39,6 +40,8 @@ const Productos = () => {
   });
 
   const [toast, setToast] = useState({ mostrar: false, mensaje: "", tipo: "" });
+  const [mostrarModalQR, setMostrarModalQR] = useState(false);
+  const [productoQR, setProductoQR] = useState(null);
 
   const manejoCambioInput = (e) => {
     const { name, value } = e.target;
@@ -263,6 +266,43 @@ const Productos = () => {
     }
   };
 
+  const copiarProducto = async (producto) => {
+    if (!producto) return;
+
+    const texto = `ID: ${producto.id_producto}\nProducto: ${producto.nombre_producto}\nCategoría: ${producto.categorias?.nombre || 'Sin categoría'}\nPrecio: C$ ${parseFloat(producto.precio_producto || 0).toLocaleString()} / $ ${parseFloat(producto.precio_dolar || 0).toLocaleString()}\nStock: ${producto.stock}\nDescripción: ${producto.descripcion_producto || 'Sin descripción'}`;
+
+    try {
+      await navigator.clipboard.writeText(texto);
+      setToast({
+        mostrar: true,
+        mensaje: `Producto "${producto.nombre_producto}" copiado al portapapeles.`,
+        tipo: "exito",
+      });
+    } catch (err) {
+      console.error("Error al copiar:", err);
+      setToast({
+        mostrar: true,
+        mensaje: "No se pudo copiar al portapapeles",
+        tipo: "error",
+      });
+    }
+  };
+
+  const generarQRImagen = (producto) => {
+    const urlImagen = producto?.imagen_url || producto?.url_imagen;
+    if (!urlImagen) {
+      setToast({
+        mostrar: true,
+        mensaje: "Este producto no tiene imagen asociada",
+        tipo: "advertencia"
+      });
+      return;
+    }
+
+    setProductoQR(producto);
+    setMostrarModalQR(true);
+  };
+
   return (
     <Container className="mt-3">
       <Row className="align-items-center mb-3">
@@ -320,6 +360,12 @@ const Productos = () => {
         onCerrar={() => setToast((prev) => ({ ...prev, mostrar: false }))}
       />
 
+      <ModalQRProducto
+        mostrar={mostrarModalQR}
+        onHide={() => setMostrarModalQR(false)}
+        producto={productoQR}
+      />
+
       {cargando ? (
         <div className="text-center py-5">
           <Spinner animation="border" variant="primary" />
@@ -332,6 +378,8 @@ const Productos = () => {
           abrirModalEdicion={abrirModalEdicion}
           onUpdate={cargarProductos}
           setToast={setToast}
+          copiarProducto={copiarProducto}
+          generarQRImagen={generarQRImagen}
         />
       )}
     </Container>
