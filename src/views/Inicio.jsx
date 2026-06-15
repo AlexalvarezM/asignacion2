@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 
 const Inicio = () => {
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
   const [fechaDesde, setFechaDesde] = useState(
     new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" })
   );
@@ -31,6 +32,7 @@ const Inicio = () => {
   const cargarDatos = async (desde, hasta) => {
     try {
       setCargando(true);
+      setError(null);
       const inicioRango = `${desde} 00:00:00`;
       const finRango = `${hasta} 23:59:59`;
 
@@ -119,6 +121,7 @@ const Inicio = () => {
 
     } catch (ecc) {
       console.error("Error al cargar estadisticas:", ecc);
+      setError(ecc.message || "No se pudieron obtener las estadísticas de ventas. Revisa tu conexión de red.");
     } finally {
       setCargando(false);
     }
@@ -255,86 +258,116 @@ const Inicio = () => {
             </Col>
           </Row>
 
-          {/* Tarjetas */}
-          <Row className="g-4 mb-5">
-            <Col md={6} lg={3}>
-              <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #28a745, #34ce57)" }}>
-                <Card.Body>
-                  <h5>Ventas Totales</h5>
-                  <h2>C$ {estadisticas.totalventas.toFixed(2)}</h2>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={6} lg={3}>
-              <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #0166d3, #3399ff)" }}>
-                <Card.Body>
-                  <h5>Efectivo</h5>
-                  <h2>C$ {estadisticas.ventasEfectivo.toFixed(2)}</h2>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={6} lg={3}>
-              <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #5ea5f1, #94c0ec)" }}>
-                <Card.Body>
-                  <h5>Tarjeta</h5>
-                  <h2>C$ {estadisticas.ventasTarjeta.toFixed(2)}</h2>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={6} lg={3}>
-              <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #e27d01, #ffa500)" }}>
-                <Card.Body>
-                  <h5>Productos Vendidos</h5>
-                  <h2>{estadisticas.productosVendidos}</h2>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
+          {error ? (
+            <Card className="shadow border-0 my-5 bg-white rounded-4 overflow-hidden">
+              <Card.Body className="p-5 text-center">
+                <div className="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-4" style={{ width: '80px', height: '80px' }}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                </div>
+                <h4 className="fw-bold text-dark mb-3">Error de Conexión</h4>
+                <p className="text-muted mx-auto mb-4" style={{ maxWidth: '480px' }}>
+                  {error}
+                </p>
+                <Button 
+                  variant="primary" 
+                  className="px-4 py-2 fw-semibold rounded-3 shadow-sm text-white border-0" 
+                  onClick={() => cargarDatos(fechaDesde, fechaHasta)}
+                  style={{ backgroundColor: '#5e26b2', transition: 'all 0.2s ease-in-out' }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#4d1e99'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#5e26b2'}
+                >
+                  <i className="bi bi-arrow-clockwise me-2"></i>Reintentar
+                </Button>
+              </Card.Body>
+            </Card>
+          ) : (
+            <>
+              {/* Tarjetas */}
+              <Row className="g-4 mb-5">
+                <Col md={6} lg={3}>
+                  <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #28a745, #34ce57)" }}>
+                    <Card.Body>
+                      <h5>Ventas Totales</h5>
+                      <h2>C$ {estadisticas.totalventas.toFixed(2)}</h2>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={6} lg={3}>
+                  <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #0166d3, #3399ff)" }}>
+                    <Card.Body>
+                      <h5>Efectivo</h5>
+                      <h2>C$ {estadisticas.ventasEfectivo.toFixed(2)}</h2>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={6} lg={3}>
+                  <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #5ea5f1, #94c0ec)" }}>
+                    <Card.Body>
+                      <h5>Tarjeta</h5>
+                      <h2>C$ {estadisticas.ventasTarjeta.toFixed(2)}</h2>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={6} lg={3}>
+                  <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #e27d01, #ffa500)" }}>
+                    <Card.Body>
+                      <h5>Productos Vendidos</h5>
+                      <h2>{estadisticas.productosVendidos}</h2>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
 
-          {/* Gráficos */}
-          <Row className="g-4">
-            <Col lg={8}>
-              <Card className="shadow border-0">
-                <Card.Body>
-                  <h5 className="mb-3">Ventas por Hora</h5>
-                  <ResponsiveContainer width="100%" height={360}>
-                    <LineChart data={estadisticas.ventasPorHora}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="hora" />
-                      <YAxis tickFormatter={(v) => `C$ ${v}`} />
-                      <Tooltip formatter={(v) => [`C$ ${v}`, "Monto"]} />
-                      <Line type="monotone" dataKey="total" stroke="#5e26b2" strokeWidth={4} dot={{ r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Card.Body>
-              </Card>
-            </Col>
+              {/* Gráficos */}
+              <Row className="g-4">
+                <Col lg={8}>
+                  <Card className="shadow border-0">
+                    <Card.Body>
+                      <h5 className="mb-3">Ventas por Hora</h5>
+                      <ResponsiveContainer width="100%" height={360}>
+                        <LineChart data={estadisticas.ventasPorHora}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="hora" />
+                          <YAxis tickFormatter={(v) => `C$ ${v}`} />
+                          <Tooltip formatter={(v) => [`C$ ${v}`, "Monto"]} />
+                          <Line type="monotone" dataKey="total" stroke="#5e26b2" strokeWidth={4} dot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </Card.Body>
+                  </Card>
+                </Col>
 
-            <Col lg={4}>
-              <Card className="shadow border-0">
-                <Card.Body>
-                  <h5 className="mb-3">Ventas por Categoría</h5>
-                  <ResponsiveContainer width="100%" height={360}>
-                    <PieChart>
-                      <Pie
-                        data={estadisticas.ventasPorCategoria.length > 0 ? estadisticas.ventasPorCategoria : [{ name: "Sin datos", value: 1 }]}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%" cy="50%"
-                        innerRadius={60} outerRadius={110}
-                        label
-                      >
-                        {estadisticas.ventasPorCategoria.map((_, i) => (
-                          <Cell key={`cell-${i}`} fill={COLORES[i % COLORES.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v) => `C$ ${v}`} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
+                <Col lg={4}>
+                  <Card className="shadow border-0">
+                    <Card.Body>
+                      <h5 className="mb-3">Ventas por Categoría</h5>
+                      <ResponsiveContainer width="100%" height={360}>
+                        <PieChart>
+                          <Pie
+                            data={estadisticas.ventasPorCategoria.length > 0 ? estadisticas.ventasPorCategoria : [{ name: "Sin datos", value: 1 }]}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%" cy="50%"
+                            innerRadius={60} outerRadius={110}
+                            label
+                          >
+                            {estadisticas.ventasPorCategoria.map((_, i) => (
+                              <Cell key={`cell-${i}`} fill={COLORES[i % COLORES.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(v) => `C$ ${v}`} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+            </>
+          )}
         </div>
       </Container>
     </div>

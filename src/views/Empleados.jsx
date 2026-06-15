@@ -131,20 +131,34 @@ const Empleados = () => {
   }, [textoBusqueda, empleados]);
 
   const agregarEmpleado = async () => {
+    const emailNormalizado = limpiarTexto(nuevoEmpleado.email).toLowerCase().trim();
+
     if (
       !limpiarTexto(nuevoEmpleado.nombre_empleado) ||
-      !limpiarTexto(nuevoEmpleado.email) ||
+      !emailNormalizado ||
       !limpiarTexto(nuevoEmpleado.password)
     ) {
       setToast({ mostrar: true, mensaje: "Los campos Nombre, Email y Contraseña son obligatorios", tipo: "advertencia" });
       return;
     }
 
+    // Validar duplicado de correo electrónico en la lista local antes de registrar
+    const existeEmail = empleados.some(emp => emp.email.toLowerCase().trim() === emailNormalizado);
+    if (existeEmail) {
+      setToast({ 
+        mostrar: true, 
+        mensaje: "Este correo electrónico ya está registrado para otro empleado. Cada empleado debe tener un correo único.", 
+        tipo: "advertencia" 
+      });
+      return;
+    }
+
     try {
       setMostrarModal(false);
+      let yaRegistradoEnAuth = false;
 
       const { error: authError } = await supabase.auth.signUp({
-        email: limpiarTexto(nuevoEmpleado.email),
+        email: emailNormalizado,
         password: nuevoEmpleado.password,
         options: {
           data: {
@@ -154,7 +168,15 @@ const Empleados = () => {
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        const msg = authError.message || "";
+        if (msg.toLowerCase().includes("already registered") || authError.status === 422) {
+          yaRegistradoEnAuth = true;
+          console.log("El usuario ya existe en Auth, procediendo a vincular en tabla empleados...");
+        } else {
+          throw authError;
+        }
+      }
 
       await insertarEmpleado(nuevoEmpleado);
 
@@ -171,7 +193,9 @@ const Empleados = () => {
 
       setToast({
         mostrar: true,
-        mensaje: `Empleado ${nuevoEmpleado.nombre_empleado} registrado correctamente`,
+        mensaje: yaRegistradoEnAuth
+          ? `Empleado registrado y vinculado con su cuenta de acceso existente.`
+          : `Empleado ${nuevoEmpleado.nombre_empleado} registrado correctamente`,
         tipo: "exito"
       });
     } catch (err) {

@@ -23,6 +23,32 @@ const ChatIA = ({ mostrar, onCerrar }) => {
   - empleados (id_empleado, nombre_empleado, apellido_empleado, email, celular, tipo_empleado)
   `;
 
+  const callGeminiWithRetry = async (prompt, modelName = "gemini-2.5-flash", retries = 2, delayMs = 1000) => {
+    try {
+      const modelo = genAI.getGenerativeModel({ model: modelName });
+      return await modelo.generateContent(prompt);
+    } catch (error) {
+      console.warn(`Error llamando a Gemini (${modelName}):`, error);
+      
+      const errorMsg = error?.message || "";
+      const isTransient = errorMsg.includes("503") || errorMsg.includes("500") || errorMsg.includes("demand") || errorMsg.includes("fetch") || errorMsg.includes("overloaded") || errorMsg.includes("limite");
+      
+      if (isTransient && retries > 0) {
+        console.log(`Reintentando Gemini (${modelName}) en ${delayMs}ms... (${retries} reintentos restantes)`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        return callGeminiWithRetry(prompt, modelName, retries - 1, delayMs * 1.5);
+      }
+      
+      // Si falla gemini-2.5-flash tras reintentos, cambiamos al modelo fallback (gemini-1.5-flash)
+      if (modelName === "gemini-2.5-flash") {
+        console.log("Cambiando al modelo fallback: gemini-1.5-flash");
+        return callGeminiWithRetry(prompt, "gemini-1.5-flash", 1, 1000);
+      }
+      
+      throw error;
+    }
+  };
+
   const enviarConsulta = async (consultaDirecta) => {
     const consultaActual = typeof consultaDirecta === 'string' ? consultaDirecta : entrada;
     if (!consultaActual.trim()) return;
@@ -33,8 +59,6 @@ const ChatIA = ({ mostrar, onCerrar }) => {
     setCargando(true);
 
     try {
-      const modelo = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
       const prompt = `
       Eres un experto en PostgreSQL. Genera una consulta SQL válida.
       ${contextoBaseDatos}
@@ -56,7 +80,7 @@ const ChatIA = ({ mostrar, onCerrar }) => {
       Consulta del usuario: "${consultaActual}"
       `;
 
-      const resultado = await modelo.generateContent(prompt);
+      const resultado = await callGeminiWithRetry(prompt);
       const textoRaw = resultado.response.text().trim();
 
       // Extrae directamente el bloque de llaves JSON del texto devuelto por la IA
@@ -94,9 +118,16 @@ const ChatIA = ({ mostrar, onCerrar }) => {
 
     } catch (error) {
       console.error("Error completo:", error);
+      const errorMsg = error?.message || "";
+      const isOverloaded = errorMsg.includes("503") || errorMsg.includes("500") || errorMsg.includes("demand") || errorMsg.includes("overloaded") || errorMsg.includes("busy");
+      
+      const explicacionError = isOverloaded 
+        ? "El servicio de Inteligencia Artificial de Google está experimentando una alta demanda temporal (Error 503). Por favor, intenta de nuevo en unos segundos."
+        : "No entendí bien tu consulta o hubo un inconveniente al procesarla. Por favor, reformúlala de forma clara.";
+
       setMensajes(prev => [...prev, {
         tipo: 'ia',
-        explicacion: "No entendí bien tu consulta. Por favor, reformúlala de forma clara.",
+        explicacion: explicacionError,
         error: true
       }]);
     }
@@ -229,19 +260,27 @@ const ChatIA = ({ mostrar, onCerrar }) => {
             </div>
           )}
 
-          {mensajes.map((msg, index) => (
-            <div key={index} className={`msg-bubble ${msg.tipo === 'usuario' ? 'msg-bubble-user' : 'msg-bubble-ia'}`}>
+           {mensajes.map((msg, index) => (
+            <div key={index} className={`msg-bubble ${msg.tipo === 'usuario' ? 'msg-bubble-user' : 'msg-bubble-ia'} ${msg.error ? 'msg-bubble-error' : ''}`}>
               <div className={msg.tipo === 'usuario' ? 'msg-header-user' : 'msg-header-ia'}>
                 {msg.tipo === 'usuario' ? (
                   'Tú'
                 ) : (
                   <>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                      <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                    </svg>
-                    Asistente IA
+                    {msg.error ? (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="me-1">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                    ) : (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                      </svg>
+                    )}
+                    {msg.error ? 'Error del Asistente' : 'Asistente IA'}
                   </>
                 )}
               </div>

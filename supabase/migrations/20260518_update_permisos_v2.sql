@@ -43,7 +43,13 @@ INSERT INTO public.permisos (rol, descripcion, permisos) VALUES
 '{ 
   "ver_inicio": true, 
   "ver_catalogo": true 
-}'::jsonb) 
+}'::jsonb),
+
+('chef', 'Chef / Cocinero - Gestión de pedidos y catálogo', 
+'{
+  "ver_inicio": true,
+  "ver_catalogo": true
+}'::jsonb)
 
 ON CONFLICT (rol) DO UPDATE 
 SET 

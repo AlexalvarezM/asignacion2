@@ -36,6 +36,10 @@ INSERT INTO public.permisos (rol, descripcion, permisos) VALUES
 ('vendedor', 'Vendedor de piso', 
 '{
   "ver_inicio": true, "ver_catalogo": true, "ver_clientes": true
+}'::jsonb),
+('chef', 'Chef / Cocinero - Gestión de pedidos y catálogo', 
+'{
+  "ver_inicio": true, "ver_catalogo": true
 }'::jsonb)
 ON CONFLICT (rol) DO UPDATE SET permisos = EXCLUDED.permisos, descripcion = EXCLUDED.descripcion;
 
