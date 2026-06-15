@@ -1,70 +1,344 @@
-import React from "react";
-import { Container, Row, Col, Button, Card } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Container, Row, Col, Card, Spinner, Form, Button } from "react-bootstrap";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { supabase } from "../database/supabaseconfig";
+import * as XLSX from 'xlsx';
 
 const Inicio = () => {
+  const [cargando, setCargando] = useState(true);
+  const [fechaDesde, setFechaDesde] = useState(
+    new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" })
+  );
+  const [fechaHasta, setFechaHasta] = useState(
+    new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" })
+  );
+
+  const [estadisticas, setEstadisticas] = useState({
+    totalventas: 0,
+    ventasEfectivo: 0,
+    ventasTarjeta: 0,
+    productosVendidos: 0,
+    montoProductos: 0,
+    cantidadventas: 0,
+    ventasPorHora: [],
+    ventasPorCategoria: []
+  });
+
+  useEffect(() => {
+    cargarDatos(fechaDesde, fechaHasta);
+  }, [fechaDesde, fechaHasta]);
+
+  const cargarDatos = async (desde, hasta) => {
+    try {
+      setCargando(true);
+      const inicioRango = `${desde} 00:00:00`;
+      const finRango = `${hasta} 23:59:59`;
+
+      const { data: ventas, error } = await supabase
+        .from("ventas")
+        .select("id_venta, total, fecha_venta, metodo_pago")
+        .gte("fecha_venta", inicioRango)
+        .lte("fecha_venta", finRango);
+
+      if (error) throw error;
+
+      const idsVentas = ventas?.map((v) => v.id_venta) || [];
+
+      let productosVendidos = 0;
+      let montoProductos = 0;
+      let ventasPorCategoria = [];
+
+      if (idsVentas.length > 0) {
+        const { data: detalles, error: errorDetalles } = await supabase
+          .from("detalles_ventas")
+          .select(`
+            cantidad,
+            subtotal,
+            productos (
+              nombre_producto,
+              categorias!fk_categoria_producto (nombre)
+            )
+          `)
+          .in("id_venta", idsVentas);
+
+        if (errorDetalles) throw errorDetalles;
+
+        detalles?.forEach((d) => {
+          productosVendidos += d.cantidad || 0;
+          montoProductos += d.subtotal || 0;
+
+          const categoria = d.productos?.categorias?.nombre || "Sin categoría";
+          const existente = ventasPorCategoria.find((c) => c.name === categoria);
+
+          if (existente) {
+            existente.value += d.subtotal || 0;
+          } else {
+            ventasPorCategoria.push({ name: categoria, value: d.subtotal || 0 });
+          }
+        });
+
+        ventasPorCategoria.sort((a, b) => b.value - a.value);
+      }
+
+      const totalventas = ventas?.reduce((sum, v) => sum + (v.total || 0), 0) || 0;
+      const ventasEfectivo = ventas?.filter((v) => v.metodo_pago === "efectivo")
+        .reduce((sum, v) => sum + (v.total || 0), 0) || 0;
+      const ventasTarjeta = ventas?.filter((v) => v.metodo_pago === "tarjeta")
+        .reduce((sum, v) => sum + (v.total || 0), 0) || 0;
+
+      const horaMap = Array(24).fill(0);
+      ventas?.forEach((venta) => {
+        if (!venta.fecha_venta) return;
+        const hora = new Date(venta.fecha_venta).getHours();
+        if (hora >= 0 && hora < 24) {
+          horaMap[hora] += venta.total || 0;
+        }
+      });
+
+      const ventasPorHora = [];
+      let acumulado = 0;
+
+      for (let h = 8; h <= 22; h++) {
+        acumulado += horaMap[h];
+        ventasPorHora.push({
+          hora: `${h.toString().padStart(2, "0")}:00`,
+          total: Math.round(acumulado)
+        });
+      }
+
+      setEstadisticas({
+        totalventas,
+        ventasEfectivo,
+        ventasTarjeta,
+        productosVendidos,
+        montoProductos,
+        cantidadventas: ventas?.length || 0,
+        ventasPorHora,
+        ventasPorCategoria
+      });
+
+    } catch (ecc) {
+      console.error("Error al cargar estadisticas:", ecc);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const descargarExcel = async () => {
+    try {
+      setCargando(true);
+      const inicioRango = `${fechaDesde} 00:00:00`;
+      const finRango = `${fechaHasta} 23:59:59`;
+
+      // 1. Obtener Ventas
+      const { data: ventas, error: errorVentas } = await supabase
+        .from("ventas")
+        .select(`
+          id_venta,
+          fecha_venta,
+          total,
+          metodo_pago,
+          id_empleado,
+          id_cliente
+        `)
+        .gte("fecha_venta", inicioRango)
+        .lte("fecha_venta", finRango)
+        .order("fecha_venta", { ascending: false });
+
+      if (errorVentas) throw errorVentas;
+
+      // 2. Obtener Detalles
+      const idsVentas = ventas?.map((v) => v.id_venta) || [];
+      let detallesVenta = [];
+
+      if (idsVentas.length > 0) {
+        const { data: detalles, error: errorDetalles } = await supabase
+          .from("detalles_ventas")
+          .select(`
+            id_detalle,
+            id_venta,
+            cantidad,
+            precio_unitario,
+            subtotal,
+            id_producto,
+            productos (
+              nombre_producto,
+              categorias!fk_categoria_producto (nombre)
+            )
+          `)
+          .in("id_venta", idsVentas)
+          .order("id_venta");
+
+        if (errorDetalles) console.error("Error en detalles:", errorDetalles);
+        else detallesVenta = detalles || [];
+      }
+
+      const wb = XLSX.utils.book_new();
+
+      // Hoja Ventas
+      if (ventas && ventas.length > 0) {
+        const wsVentas = XLSX.utils.json_to_sheet(ventas);
+        XLSX.utils.book_append_sheet(wb, wsVentas, "Ventas");
+      } else {
+        const wsVentas = XLSX.utils.json_to_sheet([{ Mensaje: "No hay ventas en este rango de fechas" }]);
+        XLSX.utils.book_append_sheet(wb, wsVentas, "Ventas");
+      }
+
+      // Hoja Detalles
+      if (detallesVenta && detallesVenta.length > 0) {
+        const wsDetalles = XLSX.utils.json_to_sheet(detallesVenta);
+        XLSX.utils.book_append_sheet(wb, wsDetalles, "Detalles Ventas");
+      } else {
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.json_to_sheet([{ Mensaje: "No hay detalles de ventas" }]),
+          "Detalles Ventas"
+        );
+      }
+
+      XLSX.writeFile(wb, `Reporte_Ventas_${fechaDesde}_a_${fechaHasta}.xlsx`);
+
+    } catch (ecc) {
+      console.error("Error generando Excel:", ecc);
+      alert("Error al generar el Excel. Revisa la consola.");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const COLORES = ["#5e26b2", "#39ff95", "#ff6bc6", "#8b46ff", "#00d4ff", "#ffd93d"];
+
+  if (cargando) {
+    return (
+      <Container className="text-center mt-5">
+        <Spinner animation="border" variant="primary" size="lg" />
+        <p className="mt-3">Cargando estadísticas...</p>
+      </Container>
+    );
+  }
+
   return (
-    <div className="min-vh-100 bg-secondary-subtle d-flex align-items-center">
-      <Container className="py-5">
-        <Row className="justify-content-center align-items-center">
-          <Col lg={7} className="text-center text-lg-start animate-up">
-            <BadgeCustom text="Sistema de Gestión" />
-            <h1 className="display-2 fw-extrabold text-main mb-3">
-              Bienvenido a <span className="text-primary">OmniLex</span>
-            </h1>
-            <p className="lead fs-4 text-muted mb-0 pe-lg-5">
-              Optimiza tu inventario y organiza tus categorías con elegancia y precisión divina. 
-              Utiliza el menú superior para navegar por las diferentes secciones.
-            </p>
-          </Col>
-          
-          <Col lg={5} className="mt-5 mt-lg-0 animate-up" style={{ animationDelay: '0.2s' }}>
-            <div className="position-relative">
-              {/* Decoración de fondo */}
-              <div className="position-absolute top-50 start-50 translate-middle bg-primary opacity-10 rounded-circle" style={{ width: '400px', height: '400px', filter: 'blur(50px)' }}></div>
-              
-              <Card className="glass border-0 rounded-5 shadow-2xl p-2 overflow-hidden position-relative">
-                <Card.Body className="p-4 text-center">
-                  <div className="bg-primary-light text-primary rounded-4 d-inline-flex p-4 mb-4 shadow-sm">
-                    <i className="bi bi-house-door-fill display-3"></i>
-                  </div>
-                  <h3 className="fw-bold text-main mb-3">Calidad Divina</h3>
-                  <div className="d-flex justify-content-center gap-2 mb-4">
-                    <i className="bi bi-star-fill text-warning"></i>
-                    <i className="bi bi-star-fill text-warning"></i>
-                    <i className="bi bi-star-fill text-warning"></i>
-                    <i className="bi bi-star-fill text-warning"></i>
-                    <i className="bi bi-star-fill text-warning"></i>
-                  </div>
-                  <Row className="g-3">
-                    <Col xs={6}>
-                      <div className="bg-white p-3 rounded-4 shadow-sm">
-                        <span className="d-block fw-extrabold text-primary h4 mb-0">+100</span>
-                        <span className="text-muted small">Productos</span>
-                      </div>
-                    </Col>
-                    <Col xs={6}>
-                      <div className="bg-white p-3 rounded-4 shadow-sm">
-                        <span className="d-block fw-extrabold text-accent h4 mb-0">24/7</span>
-                        <span className="text-muted small">Control</span>
-                      </div>
-                    </Col>
-                  </Row>
+    <div className="min-vh-100 bg-secondary-subtle py-4">
+      <Container>
+        <div className="mt-2">
+          <div className="mb-4">
+            <h2>Dashboard</h2>
+            <h6>Estadísticas del Negocio</h6>
+          </div>
+
+          <Row className="mb-4">
+            <Col xs={6} md={3}>
+              <Form.Group>
+                <Form.Label>Desde</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={fechaDesde}
+                  onChange={(e) => setFechaDesde(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col xs={6} md={3}>
+              <Form.Group>
+                <Form.Label>Hasta</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={fechaHasta}
+                  onChange={(e) => setFechaHasta(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={3} className="d-flex align-items-end">
+              <Button variant="success" onClick={descargarExcel}>
+                <i className="bi bi-file-earmark-excel me-2"></i>
+                Descargar Excel
+              </Button>
+            </Col>
+          </Row>
+
+          {/* Tarjetas */}
+          <Row className="g-4 mb-5">
+            <Col md={6} lg={3}>
+              <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #28a745, #34ce57)" }}>
+                <Card.Body>
+                  <h5>Ventas Totales</h5>
+                  <h2>C$ {estadisticas.totalventas.toFixed(2)}</h2>
                 </Card.Body>
               </Card>
-            </div>
-          </Col>
-        </Row>
+            </Col>
+            <Col md={6} lg={3}>
+              <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #0166d3, #3399ff)" }}>
+                <Card.Body>
+                  <h5>Efectivo</h5>
+                  <h2>C$ {estadisticas.ventasEfectivo.toFixed(2)}</h2>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6} lg={3}>
+              <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #5ea5f1, #94c0ec)" }}>
+                <Card.Body>
+                  <h5>Tarjeta</h5>
+                  <h2>C$ {estadisticas.ventasTarjeta.toFixed(2)}</h2>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6} lg={3}>
+              <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #e27d01, #ffa500)" }}>
+                <Card.Body>
+                  <h5>Productos Vendidos</h5>
+                  <h2>{estadisticas.productosVendidos}</h2>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Gráficos */}
+          <Row className="g-4">
+            <Col lg={8}>
+              <Card className="shadow border-0">
+                <Card.Body>
+                  <h5 className="mb-3">Ventas por Hora</h5>
+                  <ResponsiveContainer width="100%" height={360}>
+                    <LineChart data={estadisticas.ventasPorHora}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="hora" />
+                      <YAxis tickFormatter={(v) => `C$ ${v}`} />
+                      <Tooltip formatter={(v) => [`C$ ${v}`, "Monto"]} />
+                      <Line type="monotone" dataKey="total" stroke="#5e26b2" strokeWidth={4} dot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            <Col lg={4}>
+              <Card className="shadow border-0">
+                <Card.Body>
+                  <h5 className="mb-3">Ventas por Categoría</h5>
+                  <ResponsiveContainer width="100%" height={360}>
+                    <PieChart>
+                      <Pie
+                        data={estadisticas.ventasPorCategoria.length > 0 ? estadisticas.ventasPorCategoria : [{ name: "Sin datos", value: 1 }]}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%" cy="50%"
+                        innerRadius={60} outerRadius={110}
+                        label
+                      >
+                        {estadisticas.ventasPorCategoria.map((_, i) => (
+                          <Cell key={`cell-${i}`} fill={COLORES[i % COLORES.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v) => `C$ ${v}`} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </div>
       </Container>
     </div>
   );
 };
-
-const BadgeCustom = ({ text }) => (
-  <span className="badge bg-primary-light text-primary px-3 py-2 rounded-pill mb-4 fw-bold text-uppercase tracking-wider shadow-sm" style={{ fontSize: '0.75rem' }}>
-    <i className="bi bi-check2-circle me-2"></i>
-    {text}
-  </span>
-);
 
 export default Inicio;
